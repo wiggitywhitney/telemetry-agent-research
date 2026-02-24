@@ -29,7 +29,7 @@ The `@opentelemetry/semantic-conventions` npm package exists but is NOT generate
 ## Weaver Registry Format
 
 ### Directory Structure
-```
+```text
 telemetry/registry/
 ├── registry_manifest.yaml
 ├── attributes.yaml
@@ -104,7 +104,7 @@ weaver registry resolve -r ./telemetry/registry -f json -o resolved.json
 
 **Live validation:**
 ```bash
-weaver registry live-check -r ./telemetry/registry --endpoint localhost:4317
+weaver registry live-check -r ./telemetry/registry --otlp-grpc-port 4317
 ```
 
 ---
@@ -228,7 +228,7 @@ For an AI instrumentation agent:
 
 ### Weaver MCP Server
 ```bash
-weaver mcp server
+weaver registry mcp -r ./telemetry/registry
 ```
 Exposes registry commands via Model Context Protocol. AI assistants can interact programmatically.
 

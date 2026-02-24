@@ -217,7 +217,7 @@ For the telemetry agent project:
 let api: typeof import('@opentelemetry/api') | null = null;
 
 try {
-  api = require('@opentelemetry/api');
+  api = await import('@opentelemetry/api');
 } catch {}
 
 export function getTracer(name: string) {
