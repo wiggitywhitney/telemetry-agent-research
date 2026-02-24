@@ -206,7 +206,7 @@ The following dimensions evaluate instrumentation quality for files/runs that pa
 
 ### Dimension 4: API-Only Dependency (API)
 
-**Definition**: The instrumented code depends only on the OpenTelemetry API package, not the SDK. In Node.js, `@opentelemetry/api` is a `peerDependency`.
+**Definition**: The instrumented code depends only on the OpenTelemetry API package, not the SDK. In Node.js, `@opentelemetry/api` should be a `peerDependency` for libraries or a `dependency` for applications.
 
 **Rationale**: This is a hard rule from the OTel specification. Libraries "should only use the OpenTelemetry API" — the SDK is the deployer's choice. Multiple API instances in `node_modules` cause silent trace loss via no-op fallbacks. Sigelman emphasizes portability: vendor-specific instrumentation is a quality defect.
 
