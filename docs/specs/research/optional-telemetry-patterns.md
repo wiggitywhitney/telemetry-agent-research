@@ -11,6 +11,7 @@ OpenTelemetry was designed from the ground up to support optional instrumentatio
 ## The Core Pattern: API vs SDK Separation
 
 **Package sizes:**
+
 | Package | Dependencies | Size |
 |---------|-------------|------|
 | `@opentelemetry/api` | 0 | ~8-10 KB |
