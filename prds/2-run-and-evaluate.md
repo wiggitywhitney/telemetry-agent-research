@@ -32,20 +32,27 @@ Fork commit-story-v2 on GitHub as a test target, run the first-draft implementat
 
 ## Context
 
-### Test Target: commit-story-v2 (fork)
+### Test Target: commit-story-v2-eval (separate repo)
 - Canonical commit-story-v2 must stay uninstrumented (reserved for KubeCon demo)
-- GitHub fork allows CodeRabbit PR reviews on instrumented changes
-- Instrumented branches being public is fine
+- New public repo `wiggitywhitney/commit-story-v2-eval` with full history pushed from canonical
+- CodeRabbit installed; evaluation PRs from `evaluation/run-N` branches target main
+- Self-referential: commit-story git hook + MCP server point at itself — every commit auto-generates journal entries, and after instrumentation, the repo produces its own telemetry
 - 320 tests, full Vitest suite — strong baseline for non-destructiveness checks
 - Weaver schema already exists at `telemetry/registry/`
+- Local clone at `~/Documents/Repositories/commit-story-v2-eval`
 
 ### Reference Implementation
+- Located at `~/Documents/Repositories/telemetry-agent-spec-v3/`
 - 44 TypeScript files, 332 tests
-- Coordinator + per-file Agent architecture
+- Coordinator + per-file Agent architecture (fresh LLM instance per file, no context carryover)
 - Direct Anthropic SDK, Weaver CLI for schema validation
-- Weaver CLI v0.21.2 installed locally
-- Runs against a target codebase and produces instrumented code + schema extensions
-- Creates feature branch and PR with summary
+- CLI: `telemetry-agent instrument <path> --config telemetry-agent.yaml`
+- Requires `telemetry-agent.yaml` in target repo with `schemaPath` and `sdkInitFile` at minimum
+- Requires `ANTHROPIC_API_KEY` env var and Weaver CLI >= v0.21.2 in PATH
+- Hybrid 3-attempt fix strategy: initial generation → multi-turn fixing → fresh regeneration
+- Schema re-resolution between files (agents see extensions from prior agents)
+- Produces instrumented code, schema extensions, SDK init file, and PR description markdown
+- Exit codes: 0 (success), 1 (partial failure), 2 (total failure), 3 (user abort)
 
 ### Evaluation Framework
 - Rubric from PRD #1 (dimensions, scoring criteria, automatable vs. human checks)
@@ -53,7 +60,7 @@ Fork commit-story-v2 on GitHub as a test target, run the first-draft implementat
 
 ## Milestones
 
-- [ ] **Test target ready**: commit-story-v2 forked on GitHub. Baseline captured: test results, coverage report, git state. Documented so the fork can be reset to baseline between runs.
+- [x] **Test target ready**: commit-story-v2-eval repo created on GitHub with full history. Baseline captured: test results (320 passing), coverage (83.19%), git state (`9c6e4a1`). Self-referential commit-story hook + MCP. Reset/run procedure documented in `evaluation/baseline/`.
 - [ ] **Reference implementation runs successfully**: Agent executes against the fork without errors. Configuration documented (API keys, schema paths, target paths). Any setup issues (Weaver CLI, dependencies) resolved and documented.
 - [ ] **First evaluation run complete**: Agent output captured — all file changes, schema extensions, agent logs. PR created on fork. CodeRabbit review received and captured.
 - [ ] **Results scored against rubric**: Each rubric dimension scored with evidence. Raw observations documented alongside scores. Surprises and unexpected findings highlighted.
@@ -63,8 +70,8 @@ Fork commit-story-v2 on GitHub as a test target, run the first-draft implementat
 
 ## Open Questions (to resolve during PRD #1 or early PRD #2)
 
-- How does the first-draft implementation discover the Weaver schema? Does it expect a specific path?
-- What configuration does the first-draft implementation need beyond API keys and target path?
+- ~~How does the first-draft implementation discover the Weaver schema? Does it expect a specific path?~~ **Resolved**: Via `schemaPath` in `telemetry-agent.yaml` config (e.g., `./telemetry/registry`).
+- ~~What configuration does the first-draft implementation need beyond API keys and target path?~~ **Resolved**: Requires `telemetry-agent.yaml` with `schemaPath` and `sdkInitFile` at minimum. Also needs `ANTHROPIC_API_KEY` env var and Weaver CLI >= v0.21.2 in PATH. Full config schema includes agent model, fix attempts, token limits, exclude patterns, dependency strategy.
 - Should we run against the full commit-story-v2 codebase or a subset of files?
 - How do we handle cost management for LLM calls during evaluation runs?
 - Cluster Whisperer as a secondary target codebase — defer to after commit-story-v2 evaluation, and possibly defer to own implementation (PRD #3 follow-up).
@@ -85,6 +92,9 @@ Fork commit-story-v2 on GitHub as a test target, run the first-draft implementat
 | 2026-02-24 | Full runs instead of dry-run mode | Dry-run still costs tokens but produces less to evaluate. Real diffs + CodeRabbit reviews give better signal. |
 | 2026-02-24 | Manual evaluation first, automation later | Need to understand what matters before automating. First couple iterations should be hands-on. |
 | 2026-02-24 | Never merge back to canonical commit-story-v2 | Canonical repo stays uninstrumented for KubeCon demo. Fork is disposable. |
+| 2026-02-24 | New repo (commit-story-v2-eval) instead of GitHub fork | Can't fork your own repo to the same account. New repo with pushed history satisfies all fork requirements (separate repo, CodeRabbit PRs, resettable). |
+| 2026-02-24 | Self-referential eval repo with commit-story hook | Eval repo's `.mcp.json` commit-story server points at itself, and git post-commit hook installed. Every commit auto-generates journal entries documenting the instrumentation process. After instrumentation, the repo becomes a live telemetry producer — validating that instrumented code actually works. |
+| 2026-02-24 | Evaluation runs on branches, PRs against main | Main branch stays as the clean baseline. Agent works on `evaluation/run-N` branches, PRs target main for CodeRabbit reviews. Historical branches are kept to track progress across runs; new runs start fresh branches from main. |
 
 ## Dependencies
 
