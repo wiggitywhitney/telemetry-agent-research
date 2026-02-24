@@ -60,6 +60,7 @@ Analyze the evaluation report from PRD #2, identify patterns (strengths to prese
 - [ ] **Architectural recommendations documented**: Assessment of current architecture (Coordinator + Agent, SDK choice, Weaver integration) with specific recommendations for next iteration.
 - [ ] **Tech stack evaluation complete**: Research and recommendation on orchestration frameworks, SDK approaches, and tooling for the next implementation. Grounded in what we learned from evaluating the current one.
 - [ ] **Design document drafted**: Blueprint for the next implementation that preserves what works and addresses what doesn't. Includes architectural decisions, tech stack choices, and key design changes.
+- [ ] **Repository README written** (Decision 4): Write the project README using `/write-docs` skill once all research phases are complete. Covers the full research arc, repo structure, navigation guide, and how findings connect to the public spec.
 
 ## Open Questions (to resolve during or after PRD #2)
 
@@ -76,6 +77,7 @@ Analyze the evaluation report from PRD #2, identify patterns (strengths to prese
 - Architectural recommendations are grounded in specific evidence from PRD #2
 - The design document is actionable — someone could start a new implementation from it
 - All findings stay in this private repo; only spec updates flow to the public spec
+- Repository README written using the `/write-docs` skill, documenting the complete research arc, repo structure, and how to navigate findings (Decision 4)
 
 ## Decision Log
 
@@ -84,6 +86,7 @@ Analyze the evaluation report from PRD #2, identify patterns (strengths to prese
 | 2026-02-24 | No code output from this phase | This is research synthesis. Code comes from a future public implementation repo. |
 | 2026-02-24 | Evaluation criteria should go into the spec | Success metrics and quality dimensions are general enough to be part of the spec, not just this evaluation. |
 | 2026-02-24 | Private findings, public spec updates | This repo stays private. Spec updates (evaluation criteria, architectural guidance) can flow to the public spec. |
+| 2026-02-24 | README deferred to PRD #3 completion | Too soon during PRD #1 — repo structure and findings will evolve through PRDs 2 and 3. Writing the README after synthesis means it documents the complete research arc, not a speculative snapshot. Use `/write-docs` skill to ensure validated content. |
 
 ## Dependencies
 
