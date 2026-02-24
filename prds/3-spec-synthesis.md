@@ -68,6 +68,7 @@ Analyze the evaluation report from PRD #2, identify patterns (strengths to prese
 - Should evaluation criteria live in the spec or in a separate evaluation framework document?
 - What's the right boundary between spec (what to build) and evaluation (how to judge it)?
 - Should the Cluster Whisperer codebase serve as a secondary validation target for the next implementation?
+- Should the evaluation harness serve double duty as an inner-loop validation stage in the agent's fix loop? (PRD #1 Decision: harness checks produce structured, machine-readable output — rule ID, pass/fail, file path, line number, actionable message. If PRD #2 shows the agent fails specific rules consistently, the harness could feed those failures back to the agent during instrumentation, not just after.)
 
 ## Success Criteria
 

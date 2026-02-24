@@ -26,7 +26,7 @@ Score = SUM(P_i x W_i) / SUM(T_i x W_i) x 100
 | 50-74 | Needs Improvement |
 | 0-49 | Poor |
 
-### Adopted Rules (20 rules, 5 categories)
+### Adopted Rules (19 rules, 5 categories)
 
 These rules evaluate the telemetry output produced by the instrumented code. We adopt them as-is from the spec.
 
@@ -278,7 +278,7 @@ The following dimensions evaluate instrumentation quality for files/runs that pa
 
 | # | Dimension | Prefix | Gates | Quality Rules | Source | Evaluates |
 |---|---|---|---|---|---|---|
-| — | Instrumentation Score | RES/SPA/MET/LOG/SDK | — | 20 | [instrumentation-score/spec](https://github.com/instrumentation-score/spec) | Runtime telemetry quality |
+| — | Instrumentation Score | RES/SPA/MET/LOG/SDK | — | 19 | [instrumentation-score/spec](https://github.com/instrumentation-score/spec) | Runtime telemetry quality |
 | 1 | Non-Destructiveness | NDS | 3 | 2 | All sources (implicit) | Code still works |
 | 2 | Coverage | COV | — | 6 | OTel guidelines, academic survey | Right things instrumented, right method |
 | 3 | Restraint | RST | — | 5 | Honeycomb, Elastic, OTel guidelines | Wrong things NOT instrumented |
@@ -286,4 +286,152 @@ The following dimensions evaluate instrumentation quality for files/runs that pa
 | 5 | Schema Fidelity | SCH | — | 4 | OTel Weaver, Grafana | Matches project registry |
 | 6 | Code Quality | CDQ | — | 6 | Sigelman, OTel guidelines, Better Stack | Clean integration |
 
-**Total**: 20 Instrumentation Score rules + 30 Code-Level rules (4 gates + 26 quality rules) across 11 categories.
+**Total**: 19 Instrumentation Score rules + 30 Code-Level rules (4 gates + 26 quality rules) across 11 categories.
+
+---
+
+## Evaluation Method Classification
+
+Each rule is classified by how it can be evaluated. The guiding question is not "can a human do better?" but **"what is the cost of a false positive or false negative?"** For agent iteration (the stated purpose of this rubric), false positives are cheap — you inspect the flagged rule, see it's wrong, and move on. False negatives are more costly but acceptable in early iterations. This tilts toward automating aggressively and accepting imperfect precision.
+
+### Categories
+
+| Category | Definition | Implication for PRD #2 |
+|---|---|---|
+| **Automatable** | Script produces a pass/fail signal with no human input; may have false positives, but the cost of inspecting and dismissing a false positive (seconds) is far lower than the cost of manual review on every iteration (hours) | Build the check; run it on every agent iteration |
+| **Semi-automatable** | Script provides partial signal but cannot produce a meaningful pass/fail; human interprets the output | Used only for IS static analysis, where some rules fundamentally require runtime data |
+| **Not checkable / Not evaluable** | No automated signal possible at this layer | Deferred to the other evaluation layer (runtime or static), or excluded from single-run evaluation |
+
+28 of 30 code-level rules are fully automatable. Two code-level rules (NDS-005, SCH-004) are semi-automatable — the script flags structural changes or similarity matches, but determining whether the flagged item is a true problem requires semantic judgment. The not-checkable category applies only to Instrumentation Score rules at the static analysis layer (the IS rules were designed for runtime evaluation, so static analysis provides partial coverage by design).
+
+### Code-Level Rules (30 rules)
+
+#### Gate Checks
+
+All gates are automatable. If a gate cannot be automated, it cannot serve as a precondition.
+
+| Rule | Classification | Mechanism |
+|---|---|---|
+| NDS-001 | Automatable | Run `tsc --noEmit`; exit code 0 = pass |
+| NDS-002 | Automatable | Run existing test suite; all tests pass = pass |
+| NDS-003 | Automatable | Diff analysis: filter instrumentation-related additions (import lines, tracer acquisition, `startActiveSpan`/`startSpan` calls, `span.setAttribute`/`recordException`/`setStatus`/`end` calls, try/finally blocks wrapping span lifecycle); remaining diff lines must be empty |
+| API-001 | Automatable | AST/grep: all `@opentelemetry/*` imports resolve to `@opentelemetry/api` only |
+
+#### Non-Destructiveness (NDS)
+
+| Rule | Classification | Mechanism | Notes |
+|---|---|---|---|
+| NDS-004 | Automatable | AST: diff all exported function signatures (parameters, return types, export declarations) before/after agent run | TypeScript `export` is unambiguous — exported = public, unexported = internal. No judgment needed. |
+| NDS-005 | Semi-automatable | AST: detect structural changes to pre-existing `try`/`catch`/`finally` blocks, reordered catch clauses, merged error handling blocks, and modified throw statements in the agent's diff; flag any modification to existing error handling structure | The script catches the easy cases: new try/finally that re-throws (benign, expected instrumentation pattern) vs. agent never touching existing error handling (pass). The hard case is the agent *restructuring* existing error handling to accommodate instrumentation — merging try/catch blocks, reordering catch clauses, wrapping an existing throw in new logic. The AST detects that the structure changed, but whether the restructured version preserves original propagation semantics (same exception types, same re-throw behavior, same catch ordering) is not a definitive pass/fail. Subtle behavioral changes like swallowed exceptions or changed error types have a meaningful false-negative rate under pure structural analysis. |
+
+#### Coverage (COV)
+
+| Rule | Classification | Mechanism | Notes |
+|---|---|---|---|
+| COV-001 | Automatable | AST: detect framework from `package.json` dependencies, then find entry point operations using framework-specific patterns (Express: `app.get/post/put/delete()`, `router.*()` callbacks; Fastify: `fastify.get/post()`, route handlers; raw http: `createServer()` callback; exported async functions from service modules) ; verify each has a span | Framework detection from `package.json` makes entry point patterns enumerable. If the codebase uses an unrecognized framework, the check produces false negatives — acceptable for agent iteration. Discovered gaps are added to the pattern list. |
+| COV-002 | Automatable | AST: detect outbound call sites using dependency-derived patterns (`fetch()`, `axios.*()`, `pg.query()`, `redis.*()`, `amqp.publish()`, database client method calls, HTTP client methods); verify each has a span | Same framework-detection approach as COV-001. The outbound call pattern list is enumerable per-dependency and maintained alongside the check. |
+| COV-003 | Automatable | AST: for each COV-001/COV-002 site plus any operation in a pre-existing try/catch block, verify the enclosing span has any error recording call (`recordException`, `setStatus`, or `span.setAttribute` with error-related keys) | "Can fail" is operationalized as: outbound calls (COV-002 sites), entry points (COV-001 sites), and operations already in try/catch blocks. All three sources are automatable. Checks presence of error visibility, not correctness of pattern (CDQ-003 handles correctness). |
+| COV-004 | Automatable | AST: find `async` functions, functions containing `await` expressions, and calls to known I/O libraries (fs, net, stream, database clients); verify each has a span | Heuristic covers 90%+ of TypeScript service code. Edge case (CPU-bound computation that happens to be long-running) is rare enough that the false-negative rate is acceptable for agent iteration. |
+| COV-005 | Automatable | Compare `setAttribute` calls in instrumented code against the project's Weaver registry: for each span, check whether required/recommended attributes from the registry definition are present | The registry encodes what domain-specific attributes belong on each span. The human judgment happened when the registry was designed, not at evaluation time. |
+| COV-006 | Automatable | Check whether manual spans target operations covered by known auto-instrumentation libraries (express, pg, mysql, redis, http, grpc, etc.); flag manual spans on those operations | The OTel contrib repo publishes auto-instrumentation packages with well-defined scope. The mapping from framework to auto-instrumentation package is static and maintained upstream. If a library is missing from the list, the false negative is acceptable — discovered gaps are added to the list. |
+
+#### Restraint (RST)
+
+| Rule | Classification | Mechanism | Notes |
+|---|---|---|---|
+| RST-001 | Automatable | AST: flag spans on functions that are synchronous, under ~5 lines, unexported, and contain no I/O calls (no `await`, no calls to known I/O libraries) | The spec defines concrete heuristics for "utility function." All criteria are AST-checkable. |
+| RST-002 | Automatable | AST: flag spans on `get`/`set` accessor declarations and trivial property accessor methods (single return statement returning a property) | Well-defined syntactic pattern. |
+| RST-003 | Automatable | AST: flag spans on functions whose body is a single return statement calling another function (possibly with argument transformation) | "Single-call wrapper" is well-defined in AST terms. |
+| RST-004 | Automatable | AST: flag spans on unexported functions and private class methods | Same principle as NDS-004: TypeScript `export` is unambiguous. Unexported = internal, exported = public. The "exported for testing" edge case is not worth a separate classification — the function chose to be part of the public API by being exported, and instrumentation is reasonable on public APIs. |
+| RST-005 | Automatable | AST: detect functions that already contain `startActiveSpan`, `startSpan`, or `tracer.` calls in the pre-agent source; flag if the agent adds additional tracer calls | Pre-existing tracer calls are unambiguous in the AST. |
+
+#### API-Only Dependency (API)
+
+| Rule | Classification | Mechanism | Notes |
+|---|---|---|---|
+| API-002 | Automatable | Parse `package.json`: verify `@opentelemetry/api` is in `peerDependencies` (for libraries) or `dependencies` (for applications) | Library vs. application distinction may need a project-level config flag. |
+| API-003 | Automatable | Parse `package.json`: check all dependencies against a list of known vendor-specific instrumentation packages (e.g., `dd-trace`, `@newrelic/telemetry-sdk`, `@splunk/otel`) | The vendor package list is static and maintainable. |
+| API-004 | Automatable | AST/grep: flag imports from `@opentelemetry/sdk-*`, `@opentelemetry/exporter-*`, `@opentelemetry/instrumentation-*`, or any `@opentelemetry/*` path that is not `@opentelemetry/api` | Import paths are unambiguous string literals. |
+
+#### Schema Fidelity (SCH)
+
+| Rule | Classification | Mechanism | Notes |
+|---|---|---|---|
+| SCH-001 | Automatable | Extract span name string literals from `startActiveSpan`/`startSpan` calls; compare against operation names in the resolved registry JSON | Span names are string literals (or should be — dynamic span names would also fail SPA-003). |
+| SCH-002 | Automatable | Extract attribute key strings from `setAttribute`/`setAttributes` calls; compare against attribute names in the resolved registry JSON | Attribute keys are string literals. |
+| SCH-003 | Automatable | For registry attributes with defined types (enum, int, string) and constraints (allowed values, ranges), verify attribute values in code match; for variable values, use TypeScript type inference to resolve types | Type checking (string vs. number) is deterministic. Enum constraints (value in allowed set) are deterministic. Variable types resolve via TypeScript's type system. The remaining edge case (dynamic values whose types aren't inferrable) is rare in typed TypeScript codebases. |
+| SCH-004 | Semi-automatable | Flag any agent-added attribute key NOT in the registry; for flagged keys, compute string/token similarity against all registry entries (e.g., Jaccard similarity on hyphen-split tokens > 0.5) and flag matches above threshold | String/token similarity catches obvious duplicates (`http.request.duration` vs. `http_request_duration`). It does not catch semantic equivalence across different naming conventions (`http.request.duration` vs. `request.latency`). "No flag" means "no obvious redundancy," not "no redundancy." The automated part (similarity flagging) is genuinely useful, but the absence of a flag is not a definitive pass — it's an absence of obvious failure. For agent iteration the false-negative cost is low (missed duplicates surface later), but this is not a definitive pass/fail check. |
+
+#### Code Quality (CDQ)
+
+| Rule | Classification | Mechanism | Notes |
+|---|---|---|---|
+| CDQ-001 | Automatable | AST: verify every `startActiveSpan`/`startSpan` call has a corresponding `span.end()` in a `finally` block (or the span is managed by a callback passed to `startActiveSpan`) | The two OTel span patterns (callback-based and manual) both have well-defined AST shapes. |
+| CDQ-002 | Automatable | AST/grep: verify `trace.getTracer()` calls include a library name string argument | Presence of a string argument is unambiguous. Version argument recommended but not required. |
+| CDQ-003 | Automatable | AST: in catch/error handling blocks, verify error recording uses `span.recordException(error)` + `span.setStatus({ code: SpanStatusCode.ERROR })`, not ad-hoc `span.setAttribute('error', ...)` | The standard pattern has a well-defined AST shape. Ad-hoc patterns are detectable by checking for `setAttribute` with error-related keys without a corresponding `recordException`. |
+| CDQ-005 | Automatable | AST: for `startActiveSpan()` callback pattern, context is automatically managed — pass. For `startSpan()` manual pattern, verify `context.with()` is used to wrap any async operations within the span's scope | In Node.js with `AsyncLocalStorage` (the standard OTel context manager), the rules are deterministic. Callback-based `startActiveSpan` handles context automatically. Manual `startSpan` requires explicit `context.with()` for async. Both patterns have well-defined AST shapes. |
+| CDQ-006 | Automatable | AST: detect `setAttribute` calls whose value argument contains function calls, method chains (`.map`, `.reduce`, `.join`, `.filter`), or serialization (`JSON.stringify`) without a preceding `span.isRecording()` check in the same scope | "Expensive" is enumerable: function calls, iteration methods, serialization in the value expression. Simple variables and literals are not expensive. Low impact rule — deprioritize for initial evaluation but the check itself is deterministic. |
+| CDQ-007 | Automatable | AST: flag `setAttribute` calls where the value is a full object spread, `JSON.stringify` of a request/response object, or an array without bounded length; flag attribute keys matching known PII field patterns (`email`, `password`, `ssn`, `phone`, `creditCard`, `address`, `*_name` for person names) | Unbounded value detection (object spreads, `JSON.stringify`, unbounded arrays) is unambiguous. PII detection uses a maintained field-name pattern list. False positives (e.g., `service.name` matching `*_name`) are cheap to dismiss during agent iteration — better to over-flag than miss PII exposure. |
+
+### Instrumentation Score Rules (20 rules)
+
+These rules evaluate runtime OTLP data. The **runtime classification** is the primary perspective — these rules were designed for runtime evaluation via Weaver live-check or OTLP collector analysis. The **static analysis classification** is supplementary — what can be caught earlier from source code, before running tests.
+
+| Rule | Runtime | Static | Notes |
+|---|---|---|---|
+| RES-001 | Automatable | Semi-automatable | **Runtime**: check OTLP resource attributes for `service.instance.id`. **Static**: grep SDK init/configuration for `service.instance.id` setup; may be set via environment variable or auto-detection, so absence in code doesn't mean absence at runtime. |
+| RES-002 | Automatable (multi-instance) | Semi-automatable | **Runtime**: compare `service.instance.id` across instances of same `service.name`. Requires multiple instances running — single test run can verify presence but not uniqueness. **Static**: check if ID generation uses UUID or similar unique source. |
+| RES-003 | Automatable (conditional) | Semi-automatable | **Runtime**: check OTLP resource for `k8s.pod.uid` when K8s environment detected. Not evaluable in local test runs. **Static**: verify K8s resource detector is configured in SDK setup. |
+| RES-004 | Automatable | Semi-automatable | **Runtime**: validate attribute placement in OTLP data (resource-level vs. span-level vs. log-level). **Static**: AST can check that code sets attributes on the correct object type (resource builder vs. span), but some attributes are set dynamically. |
+| RES-005 | Automatable | Automatable | **Runtime**: check OTLP resource for non-empty `service.name`. **Static**: grep SDK configuration for `service.name` setting — presence and non-empty value are both verifiable in code. |
+| SPA-001 | Automatable | Semi-automatable | **Runtime**: count INTERNAL-kind spans per trace per service in OTLP output. **Static**: count `startActiveSpan` calls with `{ kind: SpanKind.INTERNAL }` or default kind (INTERNAL is default), but actual trace shape depends on execution paths — static count is an upper bound. |
+| SPA-002 | Automatable | Not checkable | **Runtime**: verify every span with `parent_span_id` has a matching parent in the trace. **Static**: parent-child relationships are determined at runtime by context propagation; no static analysis can determine span topology. |
+| SPA-003 | Automatable | Automatable | **Runtime**: check unique span name count over time window. **Static**: grep span name arguments for template literals with dynamic interpolation (`${variable}`); flag any span name that is not a string literal or constant. |
+| SPA-004 | Automatable | Semi-automatable | **Runtime**: check span kind of root spans in OTLP output. **Static**: verify entry point handlers create SERVER or INTERNAL spans, but which spans become root spans depends on incoming context propagation at runtime. |
+| SPA-005 | Automatable | Not checkable | **Runtime**: check span durations in OTLP output. **Static**: duration is fundamentally a runtime measurement; no static analysis can predict it. |
+| MET-001 | Automatable (traffic-dependent) | Semi-automatable | **Runtime**: count unique values per metric attribute key over time window. Requires sufficient traffic volume to evaluate cardinality. **Static**: flag metric attributes sourced from high-cardinality inputs (user IDs, timestamps, request URLs). |
+| MET-002 | Automatable | Automatable | **Runtime**: check metric definitions in OTLP for non-default unit. **Static**: grep metric creation calls (e.g., `meter.createHistogram()`) for `unit` argument presence and UCUM compliance. |
+| MET-003 | Not evaluable (single run) | Semi-automatable | **Runtime**: requires 14-day observation window to verify unit consistency. Not evaluable from a single test run. **Static**: verify all code paths that create the same-named metric use the same unit argument. Catches inconsistency within a single codebase snapshot, though not temporal drift. |
+| MET-004 | Not evaluable (single run) | Semi-automatable | **Runtime**: requires 14-day observation window for bucket consistency. Not evaluable from a single test run. **Static**: verify all histogram creations for the same metric name use the same bucket boundaries. Same caveat as MET-003. |
+| MET-005 | Automatable | Automatable | **Runtime**: regex check on metric names for embedded unit strings. **Static**: grep metric name arguments for patterns containing unit strings (`.seconds`, `.bytes`, `.milliseconds`, etc.). |
+| MET-006 | Automatable | Automatable | **Runtime**: cross-reference metric names with attribute keys in OTLP. **Static**: cross-reference metric name strings in code with attribute keys from the registry. |
+| LOG-001 | Not evaluable (operational) | Not checkable | Requires production log pipeline retention configuration review. Not evaluable from a test run or source code — this is an infrastructure/operational concern. |
+| LOG-002 | Automatable | Semi-automatable | **Runtime**: check OTLP log records for `severityNumber` presence. **Static**: grep log creation calls for severity level configuration; absence in code may mean the logging framework sets a default. |
+| SDK-001 | Automatable | Automatable | **Runtime**: check resource attributes for language/runtime version. **Static**: check `package.json` `engines` field and `@opentelemetry/*` package versions against SDK compatibility matrix. |
+
+### Summary
+
+#### Code-Level Rules (30)
+
+| Classification | Count | Rules |
+|---|---|---|
+| Automatable | 28 | NDS-001, NDS-002, NDS-003, NDS-004, API-001, COV-001, COV-002, COV-003, COV-004, COV-005, COV-006, RST-001, RST-002, RST-003, RST-004, RST-005, API-002, API-003, API-004, SCH-001, SCH-002, SCH-003, CDQ-001, CDQ-002, CDQ-003, CDQ-005, CDQ-006, CDQ-007 |
+| Semi-automatable | 2 | NDS-005, SCH-004 |
+| Human-only | 0 | — |
+
+**93% automatable (28/30), 7% semi-automatable (2/30), 0% human-only.** The two semi-automatable rules share a common trait: both involve semantic equivalence that structural/syntactic analysis cannot definitively resolve. NDS-005 requires judging whether restructured error handling preserves propagation semantics. SCH-004 requires judging whether differently-named schema entries refer to the same concept. In both cases, the automated check (structural diff, string similarity) provides genuine signal, but "no flag" is not a definitive pass.
+
+**LLM-assisted evaluation candidate.** Both semi-automatable rules are strong candidates for LLM-as-judge evaluation. NDS-005 (given a before/after diff, does the restructured error handling preserve propagation semantics?) and SCH-004 (given the registry and an agent-added attribute, is it semantically equivalent to an existing entry?) are exactly the kind of semantic reasoning LLMs handle reliably. A script + LLM judge pipeline could bring the effective automation rate to 30/30 — fully automatable with no specialized human knowledge required. That's a meaningful property: the entire evaluation rubric can run without a telemetry expert in the loop. Design of the LLM judge is deferred until PRD #2 results show actual agent behavior — which rules the agent fails, how it fails them, and whether the evaluation harness can serve as an inner-loop validation stage in the agent's own fix cycle (see PRD #1 Decision Log).
+
+The 28 automatable rules succeed because their definitions can be operationalized into deterministic checks: framework-specific patterns are enumerable from `package.json`, TypeScript's `export` keyword makes public/internal unambiguous, the Weaver registry encodes domain knowledge, and field-name pattern lists enable over-flagging where the cost of a false positive (seconds to dismiss) is far lower than the cost of manual review on every agent iteration.
+
+#### Instrumentation Score Rules (19)
+
+*Note: The IS rules adopted from the spec total 19 (RES: 5, SPA: 5, MET: 6, LOG: 2, SDK: 1). The "20" in the Adopted Rules header above is a counting error to be corrected.*
+
+| Runtime Classification | Count | Rules |
+|---|---|---|
+| Automatable | 16 | RES-001, RES-002, RES-003, RES-004, RES-005, SPA-001, SPA-002, SPA-003, SPA-004, SPA-005, MET-001, MET-002, MET-005, MET-006, LOG-002, SDK-001 |
+| Not evaluable (single run) | 3 | MET-003, MET-004, LOG-001 |
+
+Of the 16 automatable rules, three have evaluation scope caveats: RES-002 (requires multi-instance comparison for uniqueness), RES-003 (conditional on K8s environment — not applicable in local test runs), and MET-001 (requires sufficient traffic volume for cardinality assessment).
+
+| Static Analysis Classification | Count | Rules |
+|---|---|---|
+| Automatable | 6 | RES-005, SPA-003, MET-002, MET-005, MET-006, SDK-001 |
+| Semi-automatable | 10 | RES-001, RES-002, RES-003, RES-004, SPA-001, SPA-004, MET-001, MET-003, MET-004, LOG-002 |
+| Not checkable | 3 | SPA-002, SPA-005, LOG-001 |
+
+**Runtime**: 16 of 19 rules are automatable from a single test run with OTLP collection. Three rules (MET-003, MET-004, LOG-001) are fundamentally not evaluable without production-scale observation or infrastructure configuration review.
+
+**Static**: 6 of 19 rules can catch issues before running tests. These are the cheapest checks and should run first during agent iteration. The 10 semi-automatable rules provide partial early signals (upper bounds, suspicious patterns) that are worth flagging even if not definitive.
