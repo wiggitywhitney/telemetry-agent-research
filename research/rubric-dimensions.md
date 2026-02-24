@@ -270,6 +270,7 @@ The following dimensions evaluate instrumentation quality for files/runs that pa
 | CDQ-001 | Spans are closed in all code paths, including error paths (try/finally or equivalent) | Critical | Per-instance |
 | CDQ-002 | Tracer is acquired with a library name argument; version argument recommended but not required per OTel API spec | Normal | Per-file |
 | CDQ-003 | Error recording uses the OTel-standard pattern (`recordException` + `setStatus(ERROR)`), not ad-hoc attribute setting | Important | Per-instance |
+| ~~CDQ-004~~ | *Removed — redundant with NDS-003 gate (both check for non-instrumentation line changes)* | — | — |
 | CDQ-005 | Async functions using `await` correctly maintain span context within the function body | Important | Per-instance |
 | CDQ-006 | `span.isRecording()` checked before setting attributes whose values require function calls, iteration, or serialization | Low | Per-instance |
 | CDQ-007 | Span attributes do not contain potentially unbounded values (full request/response bodies, large arrays) or PII | Important | Per-instance |
