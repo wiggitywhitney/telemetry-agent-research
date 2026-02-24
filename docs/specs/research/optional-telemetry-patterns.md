@@ -220,6 +220,10 @@ try {
   api = await import('@opentelemetry/api');
 } catch {}
 
+// Minimal no-op tracer for when OTel API is unavailable
+const noopSpan = { end() {}, setAttribute() { return this; } };
+const noopTracer = { startSpan() { return noopSpan; } };
+
 export function getTracer(name: string) {
   if (api) {
     return api.trace.getTracer(name);
@@ -243,7 +247,7 @@ Do nothing - code uses no-ops automatically.
 1. **Don't bundle the SDK** - Let consumers bring their own
 2. **Don't use `@opentelemetry/auto-instrumentations-node`** - It's massive
 3. **Don't have multiple copies of `@opentelemetry/api`** - Use peer dependencies
-4. **Don't depend on SDK internals** - Only use public API interfaces
+4. **Don't depend on SDK internals** - Only use public APIs
 
 ---
 
