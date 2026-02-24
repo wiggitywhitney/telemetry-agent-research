@@ -62,7 +62,7 @@ Research instrumentation quality from multiple angles (OpenTelemetry community s
 ## Milestones
 
 - [x] **Research survey complete**: Web research on instrumentation quality standards from OTel community, observability vendors (Honeycomb, Datadog, Grafana, Lightstep), academic sources, and practitioner blogs. Raw findings captured in research notes.
-- [ ] **Draft rubric dimensions defined**: Named list of evaluation dimensions with descriptions and rationale for inclusion. Each dimension has a clear definition of what it measures.
+- [x] **Draft rubric dimensions defined**: Named list of evaluation dimensions with descriptions and rationale for inclusion. Each dimension has a clear definition of what it measures.
 - [ ] **Scoring criteria per dimension**: For each dimension, define what constitutes poor/acceptable/good/excellent instrumentation. Include concrete examples where possible.
 - [ ] **Automatable vs. human-judgment classification**: Each dimension tagged as automatable (can be checked by script), semi-automatable (script can flag, human confirms), or human-only (requires expert judgment).
 - [ ] **Rubric mapped to commit-story-v2**: Each dimension has concrete examples of what to look for in commit-story-v2 specifically, referencing its test suite, schema, and code structure.
@@ -81,6 +81,7 @@ Research instrumentation quality from multiple angles (OpenTelemetry community s
 | 2026-02-24 | Rubric before running the agent | Need to know what we're measuring before we measure it. Avoids rationalizing whatever output we get. |
 | 2026-02-24 | Three separate PRDs (rubric → evaluate → synthesize) | Each phase has distinct deliverables and success criteria. Smaller PRDs are easier to track. |
 | 2026-02-24 | Include automation classification in rubric | Future iterations should be repeatable. Knowing which checks can be automated informs PRD #3 design. |
+| 2026-02-24 | Adopt Instrumentation Score spec as foundation, extend with code-level dimensions | Community-driven 0-100 scoring standard (by OllyGarden, with New Relic/Splunk/Dash0/Datadog/Grafana contributions) already covers runtime telemetry quality via 20 boolean rules. We extend it with 6 code-level dimensions for evaluating AI-generated instrumentation source code. Avoids reinventing what the industry has already standardized. |
 
 ## Dependencies
 
