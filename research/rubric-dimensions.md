@@ -221,7 +221,7 @@ The following dimensions evaluate instrumentation quality for files/runs that pa
 
 | Rule | Description | Impact | Scope |
 |---|---|---|---|
-| API-002 | `@opentelemetry/api` is declared as the correct dependency type (`peerDependency` for libraries, `dependency` for applications) | Important | Per-run |
+| API-002 | `@opentelemetry/api` is declared as the correct dependency type (`peerDependencies` for libraries, `dependencies` for applications) | Important | Per-run |
 | API-003 | No vendor-specific instrumentation SDKs in dependencies | Important | Per-run |
 | API-004 | No direct imports from SDK-internal modules (exporters, processors, samplers) | Important | Per-file |
 
