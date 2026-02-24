@@ -61,7 +61,7 @@ Research instrumentation quality from multiple angles (OpenTelemetry community s
 
 ## Milestones
 
-- [ ] **Research survey complete**: Web research on instrumentation quality standards from OTel community, observability vendors (Honeycomb, Datadog, Grafana, Lightstep), academic sources, and practitioner blogs. Raw findings captured in research notes.
+- [x] **Research survey complete**: Web research on instrumentation quality standards from OTel community, observability vendors (Honeycomb, Datadog, Grafana, Lightstep), academic sources, and practitioner blogs. Raw findings captured in research notes.
 - [ ] **Draft rubric dimensions defined**: Named list of evaluation dimensions with descriptions and rationale for inclusion. Each dimension has a clear definition of what it measures.
 - [ ] **Scoring criteria per dimension**: For each dimension, define what constitutes poor/acceptable/good/excellent instrumentation. Include concrete examples where possible.
 - [ ] **Automatable vs. human-judgment classification**: Each dimension tagged as automatable (can be checked by script), semi-automatable (script can flag, human confirms), or human-only (requires expert judgment).
