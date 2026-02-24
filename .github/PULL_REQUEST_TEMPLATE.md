@@ -27,6 +27,8 @@
 - [ ] 📦 Dependency updates
 - [ ] 🔨 CI/CD changes
 
+**If breaking change, describe the impact and migration path:**
+
 ## Conventional Commit Format
 <!-- This project uses Conventional Commits for automated changelog generation -->
 
@@ -58,7 +60,7 @@ BREAKING CHANGE: v1 API endpoints have been removed.
 See MIGRATION.md for upgrade guide.
 ```
 
-## Testing Checklist
+## Testing
 <!-- Ensure all relevant tests have been completed -->
 
 - [ ] Tests added or updated
@@ -75,7 +77,7 @@ See MIGRATION.md for upgrade guide.
 **Test results:**
 <!-- Describe test results, including any relevant output or screenshots -->
 
-## Documentation Checklist
+## Documentation
 <!-- Ensure documentation is updated to reflect your changes -->
 
 - [ ] README.md updated (if user-facing changes)
@@ -83,7 +85,7 @@ See MIGRATION.md for upgrade guide.
 - [ ] Code comments added for complex logic
 - [ ] API documentation updated (if API changes)
 
-## Security Checklist
+## Security
 <!-- Complete if your changes affect security -->
 
 - [ ] No secrets or credentials committed
@@ -93,24 +95,11 @@ See MIGRATION.md for upgrade guide.
 - [ ] Authentication/authorization logic reviewed
 - [ ] Error messages don't leak sensitive information
 
-## Breaking Changes
-<!-- If this is a breaking change, describe the impact and provide migration guidance -->
-
-**Does this PR introduce breaking changes?**
-- [ ] Yes
-- [ ] No
-
-**If yes, describe the breaking changes and migration path:**
-
-## Checklist
-<!-- Final pre-submission checklist -->
+## Pre-Submission Checklist
 
 - [ ] My code follows the project's code style guidelines
 - [ ] I have performed a self-review of my code
-- [ ] I have commented my code, particularly in hard-to-understand areas
 - [ ] My changes generate no new warnings or errors
-- [ ] I have added tests that prove my fix is effective or my feature works
-- [ ] New and existing tests pass locally with my changes
 - [ ] Any dependent changes have been merged and published
 - [ ] PR title follows Conventional Commits format
 

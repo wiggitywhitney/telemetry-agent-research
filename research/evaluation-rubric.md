@@ -503,7 +503,7 @@ The following rules are binary preconditions. If any gate fails, quality scoring
 
 | Classification | Count | Rules |
 |---|---|---|
-| Automatable | 28 | NDS-001 through NDS-004, API-001, COV-001 through COV-006, RST-001 through RST-005, API-002 through API-004, SCH-001 through SCH-003, CDQ-001 through CDQ-007 |
+| Automatable | 28 | NDS-001 through NDS-004, API-001, COV-001 through COV-006, RST-001 through RST-005, API-002 through API-004, SCH-001 through SCH-003, CDQ-001, CDQ-002, CDQ-003, CDQ-005, CDQ-006, CDQ-007 |
 | Semi-automatable | 2 | NDS-005, SCH-004 |
 
 **93% automatable (28/30), 7% semi-automatable (2/30), 0% human-only.**

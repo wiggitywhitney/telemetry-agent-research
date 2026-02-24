@@ -375,7 +375,7 @@ All gates are automatable. If a gate cannot be automated, it cannot serve as a p
 | CDQ-006 | Automatable | AST: detect `setAttribute` calls whose value argument contains function calls, method chains (`.map`, `.reduce`, `.join`, `.filter`), or serialization (`JSON.stringify`) without a preceding `span.isRecording()` check in the same scope | "Expensive" is enumerable: function calls, iteration methods, serialization in the value expression. Simple variables and literals are not expensive. Low impact rule — deprioritize for initial evaluation but the check itself is deterministic. |
 | CDQ-007 | Automatable | AST: flag `setAttribute` calls where the value is a full object spread, `JSON.stringify` of a request/response object, or an array without bounded length; flag attribute keys matching known PII field patterns (`email`, `password`, `ssn`, `phone`, `creditCard`, `address`, `*_name` for person names) | Unbounded value detection (object spreads, `JSON.stringify`, unbounded arrays) is unambiguous. PII detection uses a maintained field-name pattern list. False positives (e.g., `service.name` matching `*_name`) are cheap to dismiss during agent iteration — better to over-flag than miss PII exposure. |
 
-### Instrumentation Score Rules (20 rules)
+### Instrumentation Score Rules (19 rules)
 
 These rules evaluate runtime OTLP data. The **runtime classification** is the primary perspective — these rules were designed for runtime evaluation via Weaver live-check or OTLP collector analysis. The **static analysis classification** is supplementary — what can be caught earlier from source code, before running tests.
 
@@ -419,7 +419,6 @@ The 28 automatable rules succeed because their definitions can be operationalize
 
 #### Instrumentation Score Rules (19)
 
-*Note: The IS rules adopted from the spec total 19 (RES: 5, SPA: 5, MET: 6, LOG: 2, SDK: 1). The "20" in the Adopted Rules header above is a counting error to be corrected.*
 
 | Runtime Classification | Count | Rules |
 |---|---|---|
