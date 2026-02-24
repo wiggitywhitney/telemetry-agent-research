@@ -63,7 +63,7 @@ Research instrumentation quality from multiple angles (OpenTelemetry community s
 
 - [x] **Research survey complete**: Web research on instrumentation quality standards from OTel community, observability vendors (Honeycomb, Datadog, Grafana, Lightstep), academic sources, and practitioner blogs. Raw findings captured in research notes.
 - [x] **Draft rubric dimensions defined**: Named list of evaluation dimensions with descriptions and rationale for inclusion. Each dimension has a clear definition of what it measures.
-- [ ] **Scoring criteria per dimension**: For each dimension, define what constitutes poor/acceptable/good/excellent instrumentation. Include concrete examples where possible.
+- [x] **Scoring criteria per dimension**: 30 binary rules (4 gates + 26 quality rules) across 6 dimensions with 3-layer evaluation structure (Gates → Dimension Profiles → Per-File Detail). Each rule has ID, description, impact level, and evaluation scope. Two external review cycles completed.
 - [ ] **Automatable vs. human-judgment classification**: Each dimension tagged as automatable (can be checked by script), semi-automatable (script can flag, human confirms), or human-only (requires expert judgment).
 - [ ] **Rubric mapped to commit-story-v2**: Each dimension has concrete examples of what to look for in commit-story-v2 specifically, referencing its test suite, schema, and code structure.
 - [ ] **Rubric document finalized**: Single document in this repo that PRD #2 will use as its evaluation framework.
@@ -82,6 +82,9 @@ Research instrumentation quality from multiple angles (OpenTelemetry community s
 | 2026-02-24 | Three separate PRDs (rubric → evaluate → synthesize) | Each phase has distinct deliverables and success criteria. Smaller PRDs are easier to track. |
 | 2026-02-24 | Include automation classification in rubric | Future iterations should be repeatable. Knowing which checks can be automated informs PRD #3 design. |
 | 2026-02-24 | Adopt Instrumentation Score spec as foundation, extend with code-level dimensions | Community-driven 0-100 scoring standard (by OllyGarden, with New Relic/Splunk/Dash0/Datadog/Grafana contributions) already covers runtime telemetry quality via 20 boolean rules. We extend it with 6 code-level dimensions for evaluating AI-generated instrumentation source code. Avoids reinventing what the industry has already standardized. |
+| 2026-02-24 | Binary rules + 3-layer evaluation instead of qualitative scale | Binary rules maximize inter-rater reliability (PRD success criterion). The IS formula was designed for continuous runtime monitoring; code diff evaluation needs gates (preconditions) + dimension profiles (diagnostic output) + per-file detail (actionable). Qualitative scales add abstraction that hides useful signal for agent iteration. |
+| 2026-02-24 | Removed CDQ-004 (incidental modifications) — redundant with NDS-003 gate | NDS-003 gate checks that non-instrumentation lines are identical to original. CDQ-004 couldn't fail independently. Edge case (unnecessary instrumentation lines) is a restraint concern, not code quality. |
+| 2026-02-24 | CDQ-002 demoted to Normal; version argument optional | OTel API spec makes version argument optional. Telemetry agent spec's own examples omit version. Rule shouldn't penalize following the spec's examples. |
 
 ## Dependencies
 
