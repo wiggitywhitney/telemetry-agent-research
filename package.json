@@ -1,0 +1,33 @@
+{
+  "name": "telemetry-agent-research",
+  "version": "1.0.0",
+  "description": "Research repo for evaluating AI-powered telemetry instrumentation agents",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wiggitywhitney/telemetry-agent-research.git"
+  },
+  "keywords": [],
+  "author": "Whitney Lee",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/wiggitywhitney/telemetry-agent-research/issues"
+  },
+  "homepage": "https://github.com/wiggitywhitney/telemetry-agent-research#readme",
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.0.18",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  },
+  "dependencies": {
+    "commit-story": "file:../commit-story-v2"
+  }
+}
