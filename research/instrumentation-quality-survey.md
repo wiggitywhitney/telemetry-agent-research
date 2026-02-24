@@ -265,7 +265,7 @@ Key finding: "The quality of the trace data is low and problems such as incomple
 **Three quality dimensions identified:**
 1. **Completeness**: Incomplete traces from exceptions interrupting span logging
 2. **Accuracy**: Erroneous traces from inconsistent instrumentation across teams
-3. **Coverage**: Service instrumentation coverage ranges 90-100% in surveyed systems
+3. **Coverage**: Observed service instrumentation coverage ranges 90-100% across 8 surveyed systems, with gaps attributed to non-core or legacy services
 
 Evaluates three instrumentation techniques:
 - Manual coding: Flexible but error-prone and intrusive

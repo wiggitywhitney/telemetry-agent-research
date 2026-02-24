@@ -1,4 +1,6 @@
-# Evaluation Rubric: Dimensions
+# Evaluation Rubric: Dimensions (Working Draft)
+
+> **Superseded by [`evaluation-rubric.md`](./evaluation-rubric.md)**, which is the finalized, codebase-agnostic evaluation framework. This file is preserved as a working draft for historical context.
 
 This rubric adopts the [Instrumentation Score Specification](https://github.com/instrumentation-score/spec) as its foundation for telemetry quality assessment, then extends it with code-level dimensions specific to evaluating AI-generated instrumentation.
 
@@ -142,7 +144,7 @@ The following dimensions evaluate instrumentation quality for files/runs that pa
 - Public API contracts preserved (parameters, return types, exports)
 - Error handling behavior unchanged (exceptions not swallowed, re-thrown differently, or converted)
 
-**Grounded in**: Universal across all sources (implicit prerequisite). Academic survey found "incomplete or erroneous traces" commonly caused by instrumentation that disrupted existing code ([PMC8629732](https://pmc.ncbi.nlm.nih.gov/articles/PMC8629732/)).
+**Grounded in**: Universal across all sources (implicit prerequisite). Academic survey of 10 industrial microservice systems found "the quality of the trace data is low and problems such as incomplete or erroneous traces are popular," attributed to system complexity and heterogeneous technology stacks ([PMC8629732](https://pmc.ncbi.nlm.nih.gov/articles/PMC8629732/)).
 
 **Scoring Rules**:
 
@@ -165,7 +167,7 @@ The following dimensions evaluate instrumentation quality for files/runs that pa
 - Auto-instrumentation libraries preferred when available
 - The agent did not skip important code paths
 
-**Grounded in**: [OTel Library Instrumentation Guidelines](https://opentelemetry.io/docs/concepts/instrumentation/libraries/) ("Public APIs, handlers, operations that can fail"). Academic survey found 90-100% coverage targets in industrial systems ([PMC8629732](https://pmc.ncbi.nlm.nih.gov/articles/PMC8629732/)).
+**Grounded in**: [OTel Library Instrumentation Guidelines](https://opentelemetry.io/docs/concepts/instrumentation/libraries/) ("Public APIs, handlers, operations that can fail"). Academic survey of 10 industrial systems observed 90-100% service coverage rates, with gaps attributed to non-core or legacy services ([PMC8629732](https://pmc.ncbi.nlm.nih.gov/articles/PMC8629732/)).
 
 **Scoring Rules**:
 
@@ -331,7 +333,7 @@ All gates are automatable. If a gate cannot be automated, it cannot serve as a p
 | COV-001 | Automatable | AST: detect framework from `package.json` dependencies, then find entry point operations using framework-specific patterns (Express: `app.get/post/put/delete()`, `router.*()` callbacks; Fastify: `fastify.get/post()`, route handlers; raw http: `createServer()` callback; exported async functions from service modules) ; verify each has a span | Framework detection from `package.json` makes entry point patterns enumerable. If the codebase uses an unrecognized framework, the check produces false negatives — acceptable for agent iteration. Discovered gaps are added to the pattern list. |
 | COV-002 | Automatable | AST: detect outbound call sites using dependency-derived patterns (`fetch()`, `axios.*()`, `pg.query()`, `redis.*()`, `amqp.publish()`, database client method calls, HTTP client methods); verify each has a span | Same framework-detection approach as COV-001. The outbound call pattern list is enumerable per-dependency and maintained alongside the check. |
 | COV-003 | Automatable | AST: for each COV-001/COV-002 site plus any operation in a pre-existing try/catch block, verify the enclosing span has any error recording call (`recordException`, `setStatus`, or `span.setAttribute` with error-related keys) | "Can fail" is operationalized as: outbound calls (COV-002 sites), entry points (COV-001 sites), and operations already in try/catch blocks. All three sources are automatable. Checks presence of error visibility, not correctness of pattern (CDQ-003 handles correctness). |
-| COV-004 | Automatable | AST: find `async` functions, functions containing `await` expressions, and calls to known I/O libraries (fs, net, stream, database clients); verify each has a span | Heuristic covers 90%+ of TypeScript service code. Edge case (CPU-bound computation that happens to be long-running) is rare enough that the false-negative rate is acceptable for agent iteration. |
+| COV-004 | Automatable | AST: find `async` functions, functions containing `await` expressions, and calls to known I/O libraries (fs, net, stream, database clients); verify each has a span | Edge case: CPU-bound computation that happens to be long-running is not detected by this heuristic. The false-negative rate is acceptable for agent iteration. |
 | COV-005 | Automatable | Compare `setAttribute` calls in instrumented code against the project's Weaver registry: for each span, check whether required/recommended attributes from the registry definition are present | The registry encodes what domain-specific attributes belong on each span. The human judgment happened when the registry was designed, not at evaluation time. |
 | COV-006 | Automatable | Check whether manual spans target operations covered by known auto-instrumentation libraries (express, pg, mysql, redis, http, grpc, etc.); flag manual spans on those operations | The OTel contrib repo publishes auto-instrumentation packages with well-defined scope. The mapping from framework to auto-instrumentation package is static and maintained upstream. If a library is missing from the list, the false negative is acceptable — discovered gaps are added to the list. |
 
