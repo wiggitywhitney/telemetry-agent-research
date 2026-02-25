@@ -43,7 +43,7 @@ The biggest discovery: the spec was written for TypeScript, but the target appli
 
 We couldn't run the agent directly against commit-story-v2 because the agent only discovers `**/*.ts` files and commit-story-v2 is entirely JavaScript (21 `.js` source files). To get any evaluation data, we copied 4 TypeScript files from a different project ([cluster-whisperer](https://github.com/wiggitywhitney/cluster-whisperer), a Kubernetes pipeline tool) into the eval repo as test targets.
 
-This workaround let us evaluate the agent's instrumentation quality, but it also introduced a mismatch: the eval repo's telemetry schema defines attributes for commit-story's journaling features (`commit_story.commit.*`, `commit_story.journal.*`), while the test files are Kubernetes pipeline code. This matters for the schema scoring — see [Rubric Learnings](#5-rubric-learnings).
+This workaround let us evaluate the agent's instrumentation quality, but it also introduced a mismatch: the eval repo's telemetry schema defines attributes for commit-story's journaling features (`commit_story.commit.*`, `commit_story.journal.*`), while the test files are Kubernetes pipeline code. This matters for the schema scoring — see [Rubric Learnings](#rubric-learnings).
 
 ### What it instrumented
 
@@ -86,7 +86,7 @@ We scored the agent's output against the evaluation rubric from PRD #1. The rubr
 | NDS-003: Only instrumentation lines changed | **Pass** | Agent didn't modify business logic |
 | API-001: Only API imports | **Pass** | Agent used the right dependency model |
 
-Two gates couldn't be verified — more on this in [Developer Experience](#4-developer-experience-observations).
+Two gates couldn't be verified — more on this in [Developer Experience](#developer-experience-observations).
 
 **Quality dimensions:**
 

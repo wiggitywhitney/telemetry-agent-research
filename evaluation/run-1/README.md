@@ -266,7 +266,7 @@ will wrap this."*
 **Impact**: When validation fails for a fixable reason (e.g., variable shadowing
 where the validator suggests renaming `tracer` to `otelTracer`), the agent gives
 up instead of retrying with the feedback. The shadowing errors in this run were
-exactly the kind of issue the fix loop was designed to handle — the validator even
+the kind of issue the fix loop was designed to handle — the validator even
 provided the fix (`suggest "otelTracer"`).
 
 ### Finding 17: Weaver schema validation disabled
@@ -372,7 +372,7 @@ review document designed for human consumption.
 description as the final output. The `branch-manager.ts` has git operations (`checkout -b`,
 `commit`, `branch --show-current`, `branch -D`), but they're never called from the
 coordinator. The coordinator processes files and returns results; creating git artifacts
-is deferred to the interface layer — and neither the MCP nor the CLI interface does it.
+is deferred to the interface layer — and neither the MCP nor the CLI does it.
 
 **Impact**: The agent modifies files in-place on whatever branch the user is on.
 There's no branch isolation, no per-file commits for revert granularity, and no PR.
@@ -486,7 +486,7 @@ Scored after 8 runs (7 failed, 1 successful with validation bypassed via Patch 3
 | 6 | MCP | 2 | 6,425 | 3,998 | All failed (shadowing — post-patch, post-stubs) |
 | 7 | MCP | 3 | 14,252 | 12,919 | 2 failed shadowing, 1 failed lint (pipeline dir) |
 | 8 | MCP | 7 | 27,870 | 21,617 | **7 passed** (validation bypassed — Patch 3) |
-| **Total** | | | **96,751** | **83,671** | **7 successful (run 8 only)** |
+| **Total** | | | **96,751** | **83,671** | **1 successful run (run 8), 7 files succeeded** |
 
 Estimated cost: ~$5.50-6.50 (Sonnet 4.6 pricing). Runs 1-7 ($3.50-4.50) produced
 zero usable output. Run 8 ($1.50-2.00) produced all successful results after

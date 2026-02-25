@@ -3,7 +3,7 @@
 > vitest run
 
 
-[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90m/Users/whitney.lee/Documents/Repositories/commit-story-v2-eval[39m
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90m<repo-root>[39m
 
  [32m✓[39m tests/utils/journal-paths.test.js [2m([22m[2m15 tests[22m[2m)[22m[32m 3[2mms[22m[39m
  [32m✓[39m tests/integrators/filters/token-filter.test.js [2m([22m[2m25 tests[22m[2m)[22m[32m 5[2mms[22m[39m

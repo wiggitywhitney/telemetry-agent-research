@@ -8,14 +8,14 @@
 - **Branch**: `main`
 - **Source repo**: `wiggitywhitney/commit-story-v2` (canonical, pushed to eval repo)
 - **Eval repo**: `wiggitywhitney/commit-story-v2-eval`
-- **Local clone**: `~/Documents/Repositories/commit-story-v2-eval`
+- **Local clone**: `<local-repo-path>/commit-story-v2-eval`
 - **Captured**: 2026-02-24
 
 ## Test Baseline
 
 - **Test count**: 320 tests across 11 test files
 - **Status**: All passing
-- **Duration**: ~736ms
+- **Duration**: 748ms
 - **Framework**: Vitest v4.0.18
 
 ## Coverage Baseline

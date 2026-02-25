@@ -3,7 +3,7 @@
 ## Eval Repo
 
 - **GitHub**: `wiggitywhitney/commit-story-v2-eval`
-- **Local**: `~/Documents/Repositories/commit-story-v2-eval`
+- **Local**: `<local-repo-path>/commit-story-v2-eval`
 - **Baseline SHA**: `9c6e4a1` (see `git-state.md` for full details)
 
 ## Setup Checklist (already done for initial setup)
@@ -24,16 +24,19 @@
 Each run gets its own branch. Historical branches are preserved.
 
 ```bash
-cd ~/Documents/Repositories/commit-story-v2-eval
+EVAL_REPO="<local-repo-path>/commit-story-v2-eval"
+AGENT_REPO="<local-repo-path>/telemetry-agent-spec-v3"
+
+cd "$EVAL_REPO"
 
 # Create a fresh evaluation branch from baseline
 git checkout main
 git checkout -b evaluation/run-N    # increment N for each run
 
 # Run the telemetry agent against this branch
-cd ~/Documents/Repositories/telemetry-agent-spec-v3
+cd "$AGENT_REPO"
 npm run build
-cd ~/Documents/Repositories/commit-story-v2-eval
+cd "$EVAL_REPO"
 vals exec -f .vals.yaml -- /path/to/telemetry-agent instrument src/ --config telemetry-agent.yaml
 
 # Create PR for CodeRabbit review
@@ -43,7 +46,7 @@ vals exec -f .vals.yaml -- /path/to/telemetry-agent instrument src/ --config tel
 ## Verifying Baseline
 
 ```bash
-cd ~/Documents/Repositories/commit-story-v2-eval
+cd "$EVAL_REPO"    # or: cd <local-repo-path>/commit-story-v2-eval
 git checkout main
 git rev-parse HEAD    # should be 9c6e4a14955ae4a30ca41163a1141a4e0645465f
 npm test              # should be 320 passing
