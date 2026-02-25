@@ -61,7 +61,7 @@ Fork commit-story-v2 on GitHub as a test target, run the first-draft implementat
 ## Milestones
 
 - [x] **Test target ready**: commit-story-v2-eval repo created on GitHub with full history. Baseline captured: test results (320 passing), coverage (83.19%), git state (`9c6e4a1`). Self-referential commit-story hook + MCP. Reset/run procedure documented in `evaluation/baseline/`.
-- [ ] **Reference implementation runs successfully**: Agent executes against the fork without errors. Configuration documented (API keys, schema paths, target paths). Any setup issues (Weaver CLI, dependencies) resolved and documented.
+- [x] **Reference implementation runs successfully**: Agent executed via MCP interface (8 runs; runs 1-7 failed due to validation chain issues, run 8 succeeded with validation bypassed). Configuration documented in `evaluation/run-1/README.md`. 25 findings documented including 3 patches applied to unblock evaluation. Setup issues (CLI unwired, in-memory FS, shadowing checker, lint checker) resolved and documented.
 - [ ] **First evaluation run complete**: Agent output captured — all file changes, schema extensions, agent logs. PR created on fork. CodeRabbit review received and captured.
 - [ ] **Results scored against rubric**: Each rubric dimension scored with evidence. Raw observations documented alongside scores. Surprises and unexpected findings highlighted.
 - [ ] **Evaluation report drafted**: Single document covering: what the agent did, how it scored, what worked well, what didn't, and specific observations that should inform PRD #3.
