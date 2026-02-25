@@ -1,9 +1,9 @@
 # PRD #3: Spec Synthesis & Design Recommendations
 
 **Issue**: [#3](https://github.com/wiggitywhitney/telemetry-agent-research/issues/3)
-**Status**: Open
+**Status**: In Progress
 **Priority**: Medium
-**Blocked by**: PRD #2 (Run & Evaluate)
+**Blocked by**: PRD #2 (Run & Evaluate) — Complete
 **Created**: 2026-02-24
 
 ## Problem
@@ -55,7 +55,7 @@ Analyze the evaluation report from PRD #2, identify patterns (strengths to prese
 
 *These milestones are preliminary and will be refined once PRD #2's evaluation report exists.*
 
-- [ ] **Evaluation patterns identified**: Group PRD #2 findings into themes — what worked, what didn't, what was missing. Categorize by: architecture, agent behavior, schema handling, code quality, coverage decisions.
+- [x] **Evaluation patterns identified**: Group PRD #2 findings into themes — what worked, what didn't, what was missing. Categorize by: architecture, agent behavior, schema handling, code quality, coverage decisions. → `evaluation/patterns.md`
 - [ ] **Spec updated with evaluation criteria**: Add evaluation rubric dimensions and success metrics to the telemetry agent spec. These become the acceptance criteria for any future implementation.
 - [ ] **Architectural recommendations documented**: Assessment of current architecture (Coordinator + Agent, SDK choice, Weaver integration) with specific recommendations for next iteration.
 - [ ] **Tech stack evaluation complete**: Research and recommendation on orchestration frameworks, SDK approaches, and tooling for the next implementation. Grounded in what we learned from evaluating the current one.
