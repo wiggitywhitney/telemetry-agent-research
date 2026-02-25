@@ -651,9 +651,26 @@ skipped. The agent's notes show it analyzed the existing spans, error handling, 
 attributes before deciding no changes were needed. However, `kubectl-get.ts` (which
 also had OTel code via an imported tracer) was not detected as already-instrumented.
 
+## CodeRabbit Review
+
+**PR**: [wiggitywhitney/commit-story-v2-eval#1](https://github.com/wiggitywhitney/commit-story-v2-eval/pull/1)
+**Review**: 8 actionable comments, 2 nitpicks
+
+### Telemetry-relevant finding
+
+**Zero issues flagged with the OTel instrumentation itself.** CodeRabbit found no
+problems with span placement, attribute naming, error handling patterns, import
+usage, or the try/catch/finally instrumentation structure. All 8 actionable
+comments targeted pre-existing bugs in the cluster-whisperer source code (secret
+leaks in kubectl argument redaction, verb parsing edge cases) or manual eval
+setup artifacts (dependency placement, machine-local config paths).
+
+This is a positive signal for the agent's instrumentation quality: an automated
+code reviewer with no knowledge of the evaluation context found nothing wrong
+with the added telemetry code.
+
 ## Next Steps
 
-- Create PR on eval repo with instrumented changes for review
 - Consider cluster-whisperer as a full evaluation target (native TypeScript, no stubs)
 - Score against formal rubric dimensions once PRD #1 rubric is finalized
 - Feed findings into PRD #3 spec synthesis
