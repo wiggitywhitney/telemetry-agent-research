@@ -120,7 +120,7 @@ The spec describes a complete system. The first-draft implementation has the pie
 | CLI `init` command | Bootstrap configuration for a new project | Parses arguments, exits successfully, does nothing |
 | CLI `instrument` command | Run the agent against a codebase | Parses arguments, exits successfully, does nothing |
 | Progress feedback | Show which file is being processed, overall progress | MCP shows "Running..." for the entire duration (84 seconds) with no updates |
-| PR description | Detailed markdown document with per-file results, schema diff, token usage | Document is assembled inside the agent, then thrown away by the MCP handler |
+| PR description | Detailed Markdown document with per-file results, schema diff, token usage | Document is assembled inside the agent, then thrown away by the MCP handler |
 | Git workflow | Feature branch, per-file commits, pull request creation | Files modified in-place on whatever branch you're on; no branch, commits, or PR |
 
 The only way to run the agent is through the MCP (Model Context Protocol) server interface, and even that required creating an entry point file that didn't exist.
