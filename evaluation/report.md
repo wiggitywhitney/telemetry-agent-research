@@ -96,7 +96,7 @@ Two gates couldn't be verified — more on this in [Developer Experience](#devel
 | Coverage | Agent instrumented the right things | 4/6 (67%) | Good span placement; missed schema attributes and auto-instrumentation |
 | Restraint | Agent avoided over-instrumentation | 3/4 (75%) | One internal function instrumented (debatable — it does I/O) |
 | API-Only Dependency | Agent used correct OpenTelemetry packages | 3/3 (100%) | Only `@opentelemetry/api` — no SDK or vendor packages |
-| Schema Fidelity | Instrumentation matches the project's telemetry schema | 1/3 (33%) | Low score caused by test setup mismatch — see [Rubric Learnings](#5-rubric-learnings) |
+| Schema Fidelity | Instrumentation matches the project's telemetry schema | 1/3 (33%) | Low score caused by test setup mismatch — see [Rubric Learnings](#rubric-learnings) |
 | Code Quality | Instrumentation code is correct and maintainable | 6/6 (100%) | Perfect OTel patterns across all files |
 
 **Overall: 19/24 rules passed (79%).** Strongest dimensions: Code Quality (100%), Non-Destructiveness (100%), API Dependency (100%). Weakest: Schema Fidelity (33%), but this is misleading — explained below.
