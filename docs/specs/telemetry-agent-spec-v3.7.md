@@ -1,8 +1,8 @@
 # Telemetry Agent Specification
 
-**Status:** Draft v3.6
+**Status:** Draft v3.7
 **Created:** 2026-02-05
-**Updated:** 2026-02-25
+**Updated:** 2026-02-26
 **Purpose:** AI agent that auto-instruments JavaScript code with OpenTelemetry based on a Weaver schema
 
 ## Revision History
@@ -19,6 +19,7 @@
 | v3.4.1 | 2026-02-23 | **Weaver version pinning:** Added `weaverMinVersion` config field and init-time version check — the spec references version-dependent behavior (v0.20.0 search deprecation, v0.21.2 MCP server, diff limitations) without previously ensuring the correct version is present. Init now runs `weaver --version` and aborts if below minimum. **Diff network call note:** Documented that `weaver registry diff` may trigger network calls to fetch the semconv dependency referenced in the baseline's `registry_manifest.yaml`, since `cp -r` copies the manifest URL reference, not resolved data. |
 | v3.5 | 2026-02-23 | **Fix loop design:** Completed RS3 research spike; moved conclusions into spec. Replaced per-stage retry loops with single-pass validation chain per attempt. Introduced 3-attempt hybrid strategy: initial generation → multi-turn fix → fresh regeneration. Multi-turn preserves context for simple errors; fresh regeneration avoids oscillation for stuck agents (supported by Olausson et al. ICLR 2024 finding that diverse initial samples outperform deep repair). Added diff-based lint checking — only agent-introduced errors trigger fixes, following SWE-agent's approach. Added error-count monotonicity and duplicate error detection as early-exit heuristics. Derived `maxFixAttempts: 2` from research (Olausson et al. found 1 repair attempt is the cost-effective sweet spot; our external validation feedback justifies one extra; Aider's hardcoded 3 reflections is the upper bound from practice). Derived `maxTokensPerFile: 80000` from per-call token estimates (~37K worst-case for 3 attempts on a 500-line file, 2× headroom). Added `validation_attempts`, `validation_strategy_used`, and `error_progression` to FileResult. Confirmed MCP `live_check` deferral to post-PoC — would require synthetic sample construction from AST, not justified when CLI `check` + end-of-run `live-check` cover structural and semantic validation respectively. Removed RS3 from pre-implementation research spikes (none remain). |
 | v3.6 | 2026-02-25 | **Evaluation criteria and JS PoC target:** Added Evaluation & Acceptance Criteria section: evaluation philosophy (why unit tests aren't sufficient, grounded in PRD #2 findings), rubric dimension summary (6 code-level dimensions with references to full rubric), two-tier validation architecture (structural + semantic tiers feeding the fix loop with blocking/advisory classification), and required verification levels (e2e smoke test, interface wiring, validation chain integration, progress verification). Switched PoC target from TypeScript to JavaScript — the demo codebase (commit-story-v2) is entirely JS. File discovery uses `**/*.js`, validation uses `node --check`. TypeScript support deferred to post-PoC (architecture supports it without structural changes). Added Tier 2 (semantic) to validation chain with cross-reference to evaluation section. Elevated model configurability (`agentModel`, `agentEffort`) to a prominent design decision in Technology Stack. |
+| v3.7 | 2026-02-26 | **JavaScript notation and design-document types:** Converted all TypeScript interface blocks and code examples to JavaScript/JSDoc notation. Added 7 new types discovered during design document work: `InstrumentationOutput` (agent's raw output), `SpanCategories`, `TokenUsage`, `CheckResult` (individual validation check), `ValidationResult` (aggregated validation chain output), `ValidateFileInput` (options object for validation chain), `RunResult` (coordinator's return type for interfaces). Evolved `FileResult`: added `"skipped"` status for already-instrumented files, `advisoryAnnotations` for Tier 2 PR display, `tokenUsage` for per-file cost tracking, `SpanCategories` reference. |
 
 ---
 
@@ -89,6 +90,42 @@ The system has a **Coordinator** (deterministic script) that manages workflow an
 **Schema re-resolution:** The Coordinator re-resolves the Weaver schema (`weaver registry resolve`) before each file, not once at startup. Since agents can extend the schema and their changes are committed to the feature branch after each successful file (step 4e), subsequent agents must see those extensions to avoid creating duplicate attributes or conflicting span IDs. The performance cost is real (resolution involves fetching and resolving the semconv dependency), but correctness requires it.
 
 This separation solves the "scope problem": discovery happens once in init, instrumentation follows established patterns. The Coordinator handles the mechanical orchestration.
+
+#### Instrumentation Output
+
+The Instrumentation Agent's result object. This is the raw output of a single LLM call, before any validation. The fix loop (Phase 3) and validation chain (Phase 2) consume this.
+
+```javascript
+/**
+ * Result of a single instrumentation attempt (one LLM call).
+ * This is the raw agent output before validation.
+ *
+ * @typedef {Object} InstrumentationOutput
+ * @property {string} instrumentedCode - Complete file replacement (full file, not a diff)
+ * @property {LibraryRequirement[]} librariesNeeded - Packages the agent identified for installation
+ * @property {string[]} schemaExtensions - IDs of new schema entries the agent created
+ * @property {number} attributesCreated - Count of new attributes added to schema
+ * @property {SpanCategories | null} spanCategories - Breakdown of spans added (null on early failure)
+ * @property {string[]} notes - Agent judgment call explanations
+ * @property {TokenUsage} tokenUsage - Tokens consumed by this LLM call
+ */
+
+/**
+ * @typedef {Object} SpanCategories
+ * @property {number} externalCalls - Spans on outbound calls (HTTP, DB, etc.)
+ * @property {number} schemaDefined - Spans matching existing schema definitions
+ * @property {number} serviceEntryPoints - Spans on exported entry-point functions
+ * @property {number} totalFunctionsInFile - Denominator for ratio-based backstop (~20% threshold)
+ */
+
+/**
+ * @typedef {Object} TokenUsage
+ * @property {number} inputTokens - Tokens in the request
+ * @property {number} outputTokens - Tokens in the response
+ * @property {number} cacheCreationInputTokens - Tokens written to cache
+ * @property {number} cacheReadInputTokens - Tokens read from cache
+ */
+```
 
 ### Coordinator Programmatic API
 
@@ -871,6 +908,54 @@ Attempt 3 (fresh regeneration):
 
 **Variable shadowing check:** Before inserting new variables (`span`, `tracer`, etc.), the agent uses ts-morph's scope analysis (TypeScript binder access) to check for existing variables with the same name in the target scope. If a collision is detected, the agent uses suffixed names (`otelSpan`, `otelTracer`) or reports the collision and skips instrumentation for that function. This check happens before the validation loop — it's a pre-condition, not something that gets "fixed" in a retry.
 
+#### Validation Chain Types
+
+The validation chain produces structured results at two granularities: individual check results, and the aggregated result for one file.
+
+```javascript
+/**
+ * Result of a single check within the validation chain.
+ *
+ * @typedef {Object} CheckResult
+ * @property {string} ruleId - e.g. "SYNTAX", "LINT", "WEAVER", "CDQ-001", "RST-001"
+ * @property {boolean} passed
+ * @property {string} filePath
+ * @property {number | null} lineNumber - null for file-level checks
+ * @property {string} message - Actionable feedback (designed for LLM consumption, not human logs)
+ * @property {1 | 2} tier
+ * @property {boolean} blocking - true = failure reverts the file; false = advisory annotation in PR
+ */
+
+/**
+ * Result of running the full validation chain on one file.
+ *
+ * blockingFailures and advisoryFindings are populated at construction time
+ * as pre-filtered arrays — not computed properties (JSDoc has no computed
+ * property support). They are redundant with tier1Results/tier2Results;
+ * the filtering is done once so consumers don't re-derive them.
+ *
+ * @typedef {Object} ValidationResult
+ * @property {boolean} passed - All blocking checks passed
+ * @property {CheckResult[]} tier1Results - Structural checks (elision, syntax, lint, Weaver static)
+ * @property {CheckResult[]} tier2Results - Semantic checks (coverage, restraint, code quality)
+ * @property {CheckResult[]} blockingFailures - All failed blocking checks (filtered from both tiers)
+ * @property {CheckResult[]} advisoryFindings - All failed advisory checks (filtered from tier2Results)
+ */
+
+/**
+ * Input for the validation chain. Uses an options object because all five
+ * parameters are required, all different types, and have no natural
+ * positional order.
+ *
+ * @typedef {Object} ValidateFileInput
+ * @property {string} originalCode - Original file before instrumentation (for diff-based lint)
+ * @property {string} instrumentedCode - Agent's output
+ * @property {string} filePath - For filesystem-based checks (syntax, lint)
+ * @property {Object} resolvedSchema - For Weaver static check
+ * @property {Object} config - Which checks to run, blocking/advisory classification
+ */
+```
+
 ### End-of-Run Validation (once, after all files)
 
 These are slow, so they run once before creating the PR. They run after the Coordinator has completed SDK init file writes and dependency installation.
@@ -1014,9 +1099,12 @@ For debugging, the Coordinator can optionally write results to a gitignored dire
  */
 
 /**
+ * Complete result for one file after all attempts (initial + retries).
+ * This is what the Coordinator collects per file.
+ *
  * @typedef {Object} FileResult
  * @property {string} path
- * @property {"success" | "failed"} status
+ * @property {"success" | "failed" | "skipped"} status - "skipped" for already-instrumented files
  * @property {number} spans_added
  * @property {LibraryRequirement[]} libraries_needed - Coordinator handles installation + SDK registration
  * @property {string[]} schema_extensions - IDs of new schema entries
@@ -1024,17 +1112,15 @@ For debugging, the Coordinator can optionally write results to a gitignored dire
  * @property {number} validation_attempts - total attempts (1 = first try succeeded, 3 = all attempts used)
  * @property {"initial-generation" | "multi-turn-fix" | "fresh-regeneration"} validation_strategy_used - strategy of the last completed attempt (on success: which strategy resolved it; on failure: which strategy was last tried before giving up or hitting a budget/early-exit)
  * @property {string[]} [error_progression] - e.g., ["3 syntax errors", "1 lint error", "0 errors"] — shows convergence or oscillation
- * @property {Object} [span_categories] - optional — not present on early failures
- * @property {number} span_categories.external_calls
- * @property {number} span_categories.schema_defined
- * @property {number} span_categories.service_entry_points
- * @property {number} span_categories.total_functions_in_file - denominator for ratio-based backstop
+ * @property {SpanCategories | null} [spanCategories] - not present on early failures
  * @property {string[]} [notes] - agent's judgment call explanations
  * @property {string} [schemaHashBefore] - hash of resolved schema before agent ran
  * @property {string} [schemaHashAfter] - hash of resolved schema after agent ran
  * @property {string} [agentVersion] - version of agent/prompt that produced this result
  * @property {string} [reason] - human-readable summary, e.g. "syntax errors after 3 attempts"
  * @property {string} [last_error] - raw error output for debugging, e.g. "Unexpected token at line 42"
+ * @property {CheckResult[]} [advisoryAnnotations] - Tier 2 advisory findings for PR display
+ * @property {TokenUsage} tokenUsage - Cumulative across all attempts
  */
 ```
 
@@ -1045,6 +1131,12 @@ The `notes` field lets the agent explain judgment calls — e.g., "skipped proce
 Schema hashes let the Coordinator trace exactly which agent introduced a schema change. If end-of-run Weaver validation fails, the Coordinator can identify the file whose schema modification caused the failure by comparing hashes across the result sequence. This is a cheap diagnostic — just a fast hash of the resolved schema JSON — not a full diff. The hash should be computed on canonicalized JSON (sorted keys, no whitespace) to avoid spurious differences from non-deterministic key ordering in Weaver's output.
 
 The `agentVersion` field tracks which version of the agent (or system prompt) produced each result. During prompt iteration — this lets you compare results across prompt versions and identify which changes improved or degraded output quality. Even a manually-bumped string (e.g., "v0.3-prompt-experiment") is useful. The Coordinator includes the agent version in the PR description.
+
+The `advisoryAnnotations` field captures Tier 2 advisory findings (Normal/Low impact) that didn't block the file but should appear in the PR description for human review. This is how semantic quality signals flow from the validation chain to the PR without blocking the commit.
+
+The `tokenUsage` field tracks cumulative token usage across all attempts for this file, making per-file cost data available to the coordinator and PR summary.
+
+The `"skipped"` status is for already-instrumented files (detected via existing OTel imports). Skipped files aren't failures — making this explicit lets the coordinator report them accurately in the PR summary.
 
 Success example:
 ```json
@@ -1090,6 +1182,36 @@ Failure example:
   "last_error": "Unexpected token at line 42"
 }
 ```
+
+### Run-Level Result
+
+The Coordinator aggregates per-file results into a run-level result that interfaces consume. This is the return type of the Coordinator's programmatic API.
+
+```javascript
+/**
+ * Complete result of a full instrumentation run.
+ * This is what the coordinator returns and interfaces consume.
+ *
+ * @typedef {Object} RunResult
+ * @property {FileResult[]} fileResults - Per-file outcomes
+ * @property {CostCeiling} costCeiling - Pre-run ceiling calculation
+ * @property {TokenUsage} actualTokenUsage - Cumulative across all files
+ * @property {number} filesProcessed - Total files attempted
+ * @property {number} filesSucceeded
+ * @property {number} filesFailed
+ * @property {number} filesSkipped - Already-instrumented
+ * @property {string[]} librariesInstalled - Packages successfully installed
+ * @property {string[]} libraryInstallFailures - Packages that failed to install
+ * @property {boolean} sdkInitUpdated - Whether the SDK init file was modified
+ * @property {string} [schemaDiff] - Weaver registry diff output (markdown format)
+ * @property {string} [schemaHashStart] - Registry hash at run start
+ * @property {string} [schemaHashEnd] - Registry hash at run end
+ * @property {string} [endOfRunValidation] - Weaver live-check compliance report (raw CLI output)
+ * @property {string[]} warnings - Degraded conditions (skipped live-check, failed installs, etc.)
+ */
+```
+
+`schemaDiff` and `endOfRunValidation` store raw Weaver CLI output rather than parsed structured types. This is a deliberate PoC choice — Weaver's output formats may change between versions, and parsing them creates coupling not justified until the PR summary generator needs field-level access. The PR summary can embed the Weaver markdown directly.
 
 ### PR Summary
 

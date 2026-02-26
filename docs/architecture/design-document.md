@@ -1,7 +1,7 @@
 # Design Document: Telemetry Agent Implementation
 
 **Research Date:** 2026-02-26
-**Source:** Spec v3.6, architectural recommendations, tech stack evaluation, implementation phasing, PRD #2 evaluation findings
+**Source:** Spec v3.7, architectural recommendations, tech stack evaluation, implementation phasing, PRD #2 evaluation findings
 **Purpose:** Blueprint for the next implementation — fills the gaps between existing documents so a builder can start from this
 
 ---
@@ -16,7 +16,7 @@ Three documents already exist that cover *what* to preserve/change ([recommendat
 
 3. **Consolidated decision register** — Every resolved decision from across four documents, in one scannable table that points to the source. The builder for Phase 4 shouldn't have to search the PRD decision log, the recommendations doc, and the tech stack eval to find the decisions that affect their phase.
 
-The [spec](../specs/telemetry-agent-spec-v3.6.md) remains the authoritative source for *what* the system does. This document is about *how* it's built.
+The [spec](../specs/telemetry-agent-spec-v3.7.md) remains the authoritative source for *what* the system does. This document is about *how* it's built.
 
 ---
 

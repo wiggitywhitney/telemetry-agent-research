@@ -43,7 +43,7 @@ Read ONLY the sections relevant to this phase.
 #### 3a. Spec Sections
 
 The phase definition contains a "Spec Sections" table. For each row:
-- **Full** -> read the entire section from `docs/specs/telemetry-agent-spec-v3.6.md`
+- **Full** -> read the entire section from `docs/specs/telemetry-agent-spec-v3.7.md`
 - **Subsection only** -> read only the named subsection
 - **Fields only** -> extract just the named configuration fields
 - **Row only** -> extract just the named row from the Technology Stack table
@@ -185,7 +185,7 @@ Before presenting the PRD to the user, verify:
 | Document | Path | Purpose |
 |----------|------|---------|
 | Implementation Phasing | `docs/specs/research/implementation-phasing.md` | Phase definitions, spec section maps, cross-cutting architecture |
-| Telemetry Agent Spec | `docs/specs/telemetry-agent-spec-v3.6.md` | Source of truth for what to build |
+| Telemetry Agent Spec | `docs/specs/telemetry-agent-spec-v3.7.md` | Source of truth for what to build |
 | Tech Stack Evaluation | `docs/architecture/tech-stack-evaluation.md` | Version numbers, API patterns, library choices |
 | Evaluation Rubric | `research/evaluation-rubric.md` | Full rule definitions for acceptance criteria |
 | Architectural Recommendations | `docs/architecture/recommendations.md` | Preserve/change verdicts, evidence base |
