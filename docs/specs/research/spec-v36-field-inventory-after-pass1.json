@@ -1,0 +1,94 @@
+{
+  "description": "Field inventory after Pass 1 (TS→JSDoc notation conversion). Compared against spec-v36-field-inventory-before.json to verify zero semantic changes.",
+  "spec_version": "v3.6 (post-Pass-1)",
+  "inventory_timestamp": "2026-02-26T00:01:00Z",
+  "interfaces": {
+    "CostCeiling": {
+      "location": "line 101-107",
+      "fields": [
+        "fileCount: number",
+        "totalFileSizeBytes: number",
+        "maxTokensCeiling: number"
+      ]
+    },
+    "CoordinatorCallbacks": {
+      "location": "line 109-118",
+      "fields": [
+        "onCostCeilingReady?: (ceiling: CostCeiling) => boolean | void",
+        "onFileStart?: (path: string, index: number, total: number) => void",
+        "onFileComplete?: (result: FileResult, index: number, total: number) => void",
+        "onSchemaCheckpoint?: (filesProcessed: number, passed: boolean) => boolean | void",
+        "onValidationStart?: () => void",
+        "onValidationComplete?: (passed: boolean, complianceReport: string) => void",
+        "onRunComplete?: (results: FileResult[]) => void"
+      ]
+    },
+    "LibraryRequirement": {
+      "location": "line 1011-1013",
+      "fields": [
+        "package: string",
+        "importName: string"
+      ]
+    },
+    "FileResult": {
+      "location": "line 1016-1038",
+      "fields": [
+        "path: string",
+        "status: \"success\" | \"failed\"",
+        "spans_added: number",
+        "libraries_needed: LibraryRequirement[]",
+        "schema_extensions: string[]",
+        "attributes_created: number",
+        "validation_attempts: number",
+        "validation_strategy_used: \"initial-generation\" | \"multi-turn-fix\" | \"fresh-regeneration\"",
+        "error_progression?: string[]",
+        "span_categories?: { external_calls, schema_defined, service_entry_points, total_functions_in_file }",
+        "notes?: string[]",
+        "schemaHashBefore?: string",
+        "schemaHashAfter?: string",
+        "agentVersion?: string",
+        "reason?: string",
+        "last_error?: string"
+      ]
+    }
+  },
+  "code_examples": {
+    "path1_step1": {
+      "location": "line 531-539",
+      "language_tag": "javascript",
+      "description": "Agent detects import in target file (user-service.js)"
+    },
+    "path1_step3": {
+      "location": "line 556-568",
+      "language_tag": "javascript",
+      "description": "Coordinator writes SDK init file (setup.js)"
+    },
+    "path2_before": {
+      "location": "line 601-608",
+      "language_tag": "javascript",
+      "description": "Manual span — before instrumentation (summary.js)"
+    },
+    "path2_after": {
+      "location": "line 612-640",
+      "language_tag": "javascript",
+      "description": "Manual span — after instrumentation (summary.js)"
+    }
+  },
+  "verification": {
+    "total_interfaces": 4,
+    "total_fields": 28,
+    "fields_match_before": true,
+    "semantic_changes": "none",
+    "changes_applied": [
+      "4 interface blocks: TypeScript → JSDoc @typedef notation",
+      "4 code examples: typescript → javascript language tag, .ts → .js filenames, type annotations removed",
+      "2 JSON result examples: .ts → .js in path fields (payment.ts, crypto.ts)",
+      "1 prose reference: user-service.ts → user-service.js (directly tied to converted code example)"
+    ],
+    "deferred_to_m8": [
+      "line 248: setup.ts in prose (init discovery description)",
+      "line 469: telemetry-agent-instrumentations.ts in prose (SDK init parsing scope)",
+      "line 1123: setup.ts in config example (sdkInitFile)"
+    ]
+  }
+}

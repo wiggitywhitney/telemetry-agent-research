@@ -98,22 +98,24 @@ This separation solves the "scope problem": discovery happens once in init, inst
 
 The Coordinator accepts an optional `callbacks` object for progress reporting:
 
-```typescript
-interface CostCeiling {
-  fileCount: number;
-  totalFileSizeBytes: number;
-  maxTokensCeiling: number;          // fileCount * maxTokensPerFile (theoretical worst case)
-}
+```javascript
+/**
+ * @typedef {Object} CostCeiling
+ * @property {number} fileCount
+ * @property {number} totalFileSizeBytes
+ * @property {number} maxTokensCeiling - fileCount * maxTokensPerFile (theoretical worst case)
+ */
 
-interface CoordinatorCallbacks {
-  onCostCeilingReady?: (ceiling: CostCeiling) => boolean | void;
-  onFileStart?: (path: string, index: number, total: number) => void;
-  onFileComplete?: (result: FileResult, index: number, total: number) => void;
-  onSchemaCheckpoint?: (filesProcessed: number, passed: boolean) => boolean | void;
-  onValidationStart?: () => void;
-  onValidationComplete?: (passed: boolean, complianceReport: string) => void;
-  onRunComplete?: (results: FileResult[]) => void;
-}
+/**
+ * @typedef {Object} CoordinatorCallbacks
+ * @property {(ceiling: CostCeiling) => boolean | void} [onCostCeilingReady]
+ * @property {(path: string, index: number, total: number) => void} [onFileStart]
+ * @property {(result: FileResult, index: number, total: number) => void} [onFileComplete]
+ * @property {(filesProcessed: number, passed: boolean) => boolean | void} [onSchemaCheckpoint]
+ * @property {() => void} [onValidationStart]
+ * @property {(passed: boolean, complianceReport: string) => void} [onValidationComplete]
+ * @property {(results: FileResult[]) => void} [onRunComplete]
+ */
 ```
 
 The `onCostCeilingReady` callback fires after file globbing but before any agent processing begins, **only when `confirmEstimate` is `true`**. When `confirmEstimate` is `false`, the Coordinator still calculates the ceiling internally (for the PR summary) but does not invoke the callback. If the callback returns `false`, the Coordinator aborts the run. Returning `true` or `void` (or not providing the callback) proceeds normally.
@@ -528,11 +530,11 @@ Agent detects a framework import and records the library need. The Coordinator h
 **Scenario:** File imports `pg` (PostgreSQL client)
 
 **Step 1: Agent detects import in target file**
-```typescript
-// src/services/user-service.ts
+```javascript
+// src/services/user-service.js
 import { Pool } from 'pg';
 
-export async function getUser(id: string) {
+export async function getUser(id) {
   const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
   return result.rows[0];
 }
@@ -553,8 +555,8 @@ export async function getUser(id: string) {
 The agent does NOT modify the SDK init file. The Coordinator handles this after all agents complete. The agent reports the full library requirement (package + import name) so the Coordinator can write the SDK file deterministically — see Result Data for details.
 
 **Step 3: Coordinator writes SDK init file (once, after all agents)**
-```typescript
-// src/telemetry/setup.ts (path from config's sdkInitFile)
+```javascript
+// src/telemetry/setup.js (path from config's sdkInitFile)
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
 
@@ -587,7 +589,7 @@ groups:
         requirement_level: recommended
 ```
 
-**Key point:** The target file (`user-service.ts`) is NOT modified. The library handles instrumentation automatically once registered.
+**Key point:** The target file (`user-service.js`) is NOT modified. The library handles instrumentation automatically once registered.
 
 **Schema vs. Runtime Dependencies:** The schema entry (Step 4) and `libraries_needed` (Step 2) serve different purposes and both are required. The schema defines the telemetry contract — what spans will be emitted and what attributes they'll have. This enables Weaver live-check to validate that the running code produces what the schema says it should. The `libraries_needed` array tells the Coordinator which npm packages to install and which classes to import and register in the SDK init file — the agent provides both the package name and the import name so the Coordinator can write the SDK file deterministically. You can't have validation without the schema entry, and you can't have working instrumentation without the library installed. They're complementary, not redundant.
 
@@ -598,9 +600,9 @@ Agent wraps business logic that no library can instrument.
 **Scenario:** Custom journal generation function
 
 **Before:**
-```typescript
-// src/generators/summary.ts
-export async function generateSummary(context: Context): Promise<string> {
+```javascript
+// src/generators/summary.js
+export async function generateSummary(context) {
   const filtered = filterContext(context);
   const prompt = buildPrompt(filtered);
   const response = await callAI(prompt);
@@ -609,13 +611,13 @@ export async function generateSummary(context: Context): Promise<string> {
 ```
 
 **After:**
-```typescript
-// src/generators/summary.ts
+```javascript
+// src/generators/summary.js
 import { trace, SpanStatusCode } from '@opentelemetry/api';
 
 const tracer = trace.getTracer('commit-story');
 
-export async function generateSummary(context: Context): Promise<string> {
+export async function generateSummary(context) {
   return tracer.startActiveSpan('commit_story.journal.generate_summary', async (span) => {
     try {
       span.setAttribute('commit_story.context.messages_count', context.messages.length);
@@ -1004,35 +1006,36 @@ For debugging, the Coordinator can optionally write results to a gitignored dire
 
 ### Result Structure
 
-```typescript
-interface LibraryRequirement {
-  package: string;       // npm package name, e.g. "@opentelemetry/instrumentation-pg"
-  importName: string;    // class to import, e.g. "PgInstrumentation"
-}
+```javascript
+/**
+ * @typedef {Object} LibraryRequirement
+ * @property {string} package - npm package name, e.g. "@opentelemetry/instrumentation-pg"
+ * @property {string} importName - class to import, e.g. "PgInstrumentation"
+ */
 
-interface FileResult {
-  path: string;
-  status: "success" | "failed";
-  spans_added: number;
-  libraries_needed: LibraryRequirement[];  // Coordinator handles installation + SDK registration
-  schema_extensions: string[];              // IDs of new schema entries
-  attributes_created: number;
-  validation_attempts: number;              // total attempts (1 = first try succeeded, 3 = all attempts used)
-  validation_strategy_used: "initial-generation" | "multi-turn-fix" | "fresh-regeneration";  // strategy of the last completed attempt (on success: which strategy resolved it; on failure: which strategy was last tried before giving up or hitting a budget/early-exit)
-  error_progression?: string[];             // e.g., ["3 syntax errors", "1 lint error", "0 errors"] — shows convergence or oscillation
-  span_categories?: {                       // optional — not present on early failures
-    external_calls: number;
-    schema_defined: number;
-    service_entry_points: number;
-    total_functions_in_file: number;        // denominator for ratio-based backstop
-  };
-  notes?: string[];                         // agent's judgment call explanations
-  schemaHashBefore?: string;                // hash of resolved schema before agent ran
-  schemaHashAfter?: string;                 // hash of resolved schema after agent ran
-  agentVersion?: string;                    // version of agent/prompt that produced this result
-  reason?: string;                          // human-readable summary, e.g. "syntax errors after 3 attempts"
-  last_error?: string;                      // raw error output for debugging, e.g. "Unexpected token at line 42"
-}
+/**
+ * @typedef {Object} FileResult
+ * @property {string} path
+ * @property {"success" | "failed"} status
+ * @property {number} spans_added
+ * @property {LibraryRequirement[]} libraries_needed - Coordinator handles installation + SDK registration
+ * @property {string[]} schema_extensions - IDs of new schema entries
+ * @property {number} attributes_created
+ * @property {number} validation_attempts - total attempts (1 = first try succeeded, 3 = all attempts used)
+ * @property {"initial-generation" | "multi-turn-fix" | "fresh-regeneration"} validation_strategy_used - strategy of the last completed attempt (on success: which strategy resolved it; on failure: which strategy was last tried before giving up or hitting a budget/early-exit)
+ * @property {string[]} [error_progression] - e.g., ["3 syntax errors", "1 lint error", "0 errors"] — shows convergence or oscillation
+ * @property {Object} [span_categories] - optional — not present on early failures
+ * @property {number} span_categories.external_calls
+ * @property {number} span_categories.schema_defined
+ * @property {number} span_categories.service_entry_points
+ * @property {number} span_categories.total_functions_in_file - denominator for ratio-based backstop
+ * @property {string[]} [notes] - agent's judgment call explanations
+ * @property {string} [schemaHashBefore] - hash of resolved schema before agent ran
+ * @property {string} [schemaHashAfter] - hash of resolved schema after agent ran
+ * @property {string} [agentVersion] - version of agent/prompt that produced this result
+ * @property {string} [reason] - human-readable summary, e.g. "syntax errors after 3 attempts"
+ * @property {string} [last_error] - raw error output for debugging, e.g. "Unexpected token at line 42"
+ */
 ```
 
 The agent reports the full library requirement (package name + import name) because it has the file context to determine the correct import. This keeps the Coordinator deterministic — it can write the SDK init file without needing allowlist lookups.
@@ -1046,7 +1049,7 @@ The `agentVersion` field tracks which version of the agent (or system prompt) pr
 Success example:
 ```json
 {
-  "path": "src/services/payment.ts",
+  "path": "src/services/payment.js",
   "status": "success",
   "spans_added": 3,
   "libraries_needed": [
@@ -1074,7 +1077,7 @@ Success example:
 Failure example:
 ```json
 {
-  "path": "src/services/crypto.ts",
+  "path": "src/services/crypto.js",
   "status": "failed",
   "spans_added": 0,
   "libraries_needed": [],
