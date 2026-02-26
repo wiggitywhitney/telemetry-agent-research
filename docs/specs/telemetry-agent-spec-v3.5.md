@@ -1,9 +1,9 @@
 # Telemetry Agent Specification
 
-**Status:** Draft v3.5
+**Status:** Draft v3.6
 **Created:** 2026-02-05
-**Updated:** 2026-02-23
-**Purpose:** AI agent that auto-instruments TypeScript code with OpenTelemetry based on a Weaver schema
+**Updated:** 2026-02-25
+**Purpose:** AI agent that auto-instruments TypeScript and JavaScript code with OpenTelemetry based on a Weaver schema
 
 ## Revision History
 
@@ -18,6 +18,7 @@
 | v3.4 | 2026-02-23 | **Weaver integration:** Completed RS2 research spike; moved conclusions into spec. PoC uses Weaver CLI for all operations (`check`, `resolve`, `diff`, `live-check`). MCP server (v0.21.2, experimental) documented but deferred to post-PoC — schema-changes-between-files invalidates in-memory registry, and MCP lacks `check`/`diff`/`resolve` equivalents. Added Weaver Integration Approach section with CLI operations table, registry directory snapshot strategy for `--baseline-registry`, and post-PoC optimization path. Documented `weaver registry search` CLI deprecation (v0.20.0). Added diff output limitations (`updated` change type not yet implemented; `uncategorized` catch-all exists). Removed RS2 from pre-implementation research spikes (one remains: RS3). |
 | v3.4.1 | 2026-02-23 | **Weaver version pinning:** Added `weaverMinVersion` config field and init-time version check — the spec references version-dependent behavior (v0.20.0 search deprecation, v0.21.2 MCP server, diff limitations) without previously ensuring the correct version is present. Init now runs `weaver --version` and aborts if below minimum. **Diff network call note:** Documented that `weaver registry diff` may trigger network calls to fetch the semconv dependency referenced in the baseline's `registry_manifest.yaml`, since `cp -r` copies the manifest URL reference, not resolved data. |
 | v3.5 | 2026-02-23 | **Fix loop design:** Completed RS3 research spike; moved conclusions into spec. Replaced per-stage retry loops with single-pass validation chain per attempt. Introduced 3-attempt hybrid strategy: initial generation → multi-turn fix → fresh regeneration. Multi-turn preserves context for simple errors; fresh regeneration avoids oscillation for stuck agents (supported by Olausson et al. ICLR 2024 finding that diverse initial samples outperform deep repair). Added diff-based lint checking — only agent-introduced errors trigger fixes, following SWE-agent's approach. Added error-count monotonicity and duplicate error detection as early-exit heuristics. Derived `maxFixAttempts: 2` from research (Olausson et al. found 1 repair attempt is the cost-effective sweet spot; our external validation feedback justifies one extra; Aider's hardcoded 3 reflections is the upper bound from practice). Derived `maxTokensPerFile: 80000` from per-call token estimates (~37K worst-case for 3 attempts on a 500-line file, 2× headroom). Added `validation_attempts`, `validation_strategy_used`, and `error_progression` to FileResult. Confirmed MCP `live_check` deferral to post-PoC — would require synthetic sample construction from AST, not justified when CLI `check` + end-of-run `live-check` cover structural and semantic validation respectively. Removed RS3 from pre-implementation research spikes (none remain). |
+| v3.6 | 2026-02-25 | **Evaluation criteria and JS support:** Added Evaluation & Acceptance Criteria section: evaluation philosophy (why unit tests aren't sufficient, grounded in PRD #2 findings), rubric dimension summary (6 code-level dimensions with references to full rubric), two-tier validation architecture (structural + semantic tiers feeding the fix loop with blocking/advisory classification), and required verification levels (e2e smoke test, interface wiring, validation chain integration, progress verification). Added JavaScript support to file discovery (exclude patterns, PoC scope). Made validation chain syntax check language-neutral (`tsc --noEmit` for TS, `node --check` for JS). Added Tier 2 (semantic) to validation chain with cross-reference to evaluation section. Elevated model configurability (`agentModel`, `agentEffort`) to a prominent design decision in Technology Stack. Updated Purpose line to include JavaScript. |
 
 ---
 
@@ -187,6 +188,8 @@ An `action.yml` that runs the CLI in a GitHub Actions runner. Setup steps: `acti
 | Schema validation | Weaver CLI (`check`, `resolve`, `diff`, `live-check`) | CLI for all PoC Weaver operations — see Weaver Integration Approach |
 | Code formatting | Prettier | Post-transformation formatting |
 | MCP interface | MCP TypeScript SDK | Thin wrapper over Coordinator |
+
+**Model configurability:** The `agentModel` config field controls which model the Instrumentation Agent uses for API calls. The default is Sonnet 4.6, but the agent should work with any Claude model. This is a first-class config option, not an implementation detail — model choice affects output quality, cost, latency, and prompt behavior. The `agentEffort` config field controls thinking depth via the effort API parameter. The System Prompt Structure section documents prompt hygiene adjustments that are model-generation-dependent (Claude 4.6 vs. earlier models). See Configuration for full details.
 
 **Why direct Anthropic SDK over LangChain/LangGraph:** The agent architecture is simple — the Coordinator is a linear loop, and each Instrumentation Agent is one (or a few) LLM API calls per file. There is no complex state graph, no multi-turn tool-use chains, no branching decision trees. LangGraph solves problems (state machines, checkpointing, complex agent graphs) that this architecture deliberately avoids. The direct SDK provides full control over prompts and API calls with no abstraction overhead, which is critical during prompt iteration. If future complexity demands it (parallel agents with shared state, complex multi-step tool use), migrating to LangGraph is a straightforward refactor — the Coordinator becomes a graph, agent calls become nodes.
 
@@ -813,11 +816,14 @@ Validation stays in the Instrumentation Agent so it can fix what it breaks. The 
 
 **Validation chain (single pass per attempt):** The following checks run as a single sequential pass after each agent attempt. If any stage fails, the remaining stages are skipped and the error from the *first failing stage* is fed back to the agent.
 
-1. **Syntax** — TypeScript compiler / ts-morph (code must compile)
+**Tier 1 (structural):**
+1. **Syntax** — Language-appropriate verification: `tsc --noEmit` for TypeScript, `node --check` for JavaScript (code must compile or parse without errors)
 2. **Lint** — Prettier/ESLint, diff-based (only agent-introduced errors — see below)
 3. **Weaver registry check** — static schema validation
 
-Order matters: elision detection first (cheapest, no LLM), then syntax (must compile before lint can run), then lint (code style), then schema (semantic correctness).
+**Tier 2 (semantic):** After Tier 1 passes, rubric-derived checks evaluate instrumentation quality — coverage, restraint, and code quality patterns. Both tiers produce structured feedback in the same format and both feed into the fix loop. See [Evaluation & Acceptance Criteria > Two-Tier Validation Architecture](#two-tier-validation-architecture) for the full tier design, rule examples, and blocking/advisory classification.
+
+Order matters: elision detection first (cheapest, no LLM), then Tier 1 (structural correctness — must compile before quality checks are meaningful), then Tier 2 (semantic quality).
 
 **Diff-based lint checking:** The Coordinator captures lint output for the original file *before* the agent runs. After each attempt, it captures lint output for the modified file. Only *new* lint errors (not present in the original output) trigger a fix attempt. This prevents the agent from being forced to fix pre-existing code quality issues it didn't introduce — a problem SWE-agent encountered and solved with the same approach. (SWE-agent v0.6.1 changelog documents a bug where "existing linter errors in a file left SWE-agent unable to edit because of our lint-retry-loop." SWE-agent's fix compares pre-edit and post-edit lint output with line-number adjustment — for PoC, a simpler approach of comparing error codes and messages while ignoring line numbers is sufficient, since instrumentation adds lines that shift all subsequent line numbers. Line-number-aware diffing is a post-PoC refinement.)
 
@@ -1138,8 +1144,8 @@ confirmEstimate: true          # CLI only. true = print cost ceiling and prompt 
 
 # File filtering
 exclude:                        # Glob patterns to skip
-  - "**/*.test.ts"
-  - "**/*.spec.ts"
+  - "**/*.test.{ts,js}"
+  - "**/*.spec.{ts,js}"
   - "src/generated/**"          # SDK init file is auto-excluded regardless of this list
 
 # Future (not implemented in PoC, reserved for post-PoC)
@@ -1439,7 +1445,7 @@ Four levers:
 - GitHub Action with workflow_dispatch trigger
 
 **Instrumentation:**
-- TypeScript support, traces only (no metrics/logs yet)
+- TypeScript and JavaScript support, traces only (no metrics/logs yet)
 - Priority-based instrumentation hierarchy with configurable review sensitivity
 - Allowlist-first library discovery with npm registry fallback
 - Schema extension with semconv priority
@@ -1476,6 +1482,85 @@ Four levers:
 - Parallel agent execution (architecture supports it; needs schema merge strategy)
 - Tighter cost ceilings (file-size-proportional ceilings that account for system prompt and schema overhead, more accurate than the current `fileCount × maxTokensPerFile` worst case)
 - Token usage estimation (heuristic-based estimates derived from historical ceiling-vs-actual data across runs, replacing conservative ceilings with realistic predictions)
+
+---
+
+## Evaluation & Acceptance Criteria
+
+This section defines how to evaluate whether a telemetry agent implementation meets the spec's requirements. It exists because unit test counts alone are insufficient — the first-draft evaluation (PRD #2) demonstrated that 332 passing unit tests coexisted with zero working end-to-end execution paths. Every component passed its unit tests; no integration between components was verified.
+
+### Evaluation Philosophy
+
+Unit tests verify components in isolation. They do not verify that:
+- The CLI calls the Coordinator
+- The validation chain accepts the agent's own output on a real filesystem
+- A single file can be instrumented and produce a compilable result
+- Progress callbacks fire during a multi-file run
+
+An implementation that passes all unit tests but fails any of these is incomplete. The evaluation criteria below define what "done" means beyond unit test counts.
+
+### Rubric Dimensions
+
+The [Instrumentation Quality Evaluation Rubric](../../research/evaluation-rubric.md) defines 6 code-level dimensions for evaluating AI-generated instrumentation quality:
+
+| Dimension | Abbreviation | What It Measures |
+|-----------|-------------|-----------------|
+| Non-Destructiveness | NDS | Agent's changes don't break existing code or behavior |
+| Code Quality | CDQ | OTel patterns are correct (span lifecycle, error handling, tracer acquisition) |
+| API Compliance | API | Only `@opentelemetry/api` imports, correct dependency model |
+| Coverage | COV | Right things instrumented (entry points, outbound calls, error paths) |
+| Restraint | RST | Wrong things skipped (internals, utilities, already-instrumented code) |
+| Schema Fidelity | SCH | Attributes and spans align with Weaver schema conventions |
+
+These dimensions are gate-checked (binary pass/fail preconditions) and profiled (per-dimension pass rates). The rubric document contains the full rule definitions, impact levels, and evaluation methods. Implementations should be evaluated against the rubric on real target codebases, not just synthetic test fixtures.
+
+### Two-Tier Validation Architecture
+
+The validation chain operates in two tiers. Both tiers produce structured feedback in the same machine-readable format and both feed into the fix loop.
+
+**Tier 1 — Structural:** Does the code work?
+- Elision detection (placeholder patterns, output length vs. input length)
+- Syntax checking (compilation / parse verification)
+- Lint checking (diff-based — only agent-introduced errors)
+- Weaver static check (`weaver registry check`)
+
+**Tier 2 — Semantic:** Is the instrumentation correct?
+- Coverage checks (outbound calls have spans, entry points covered)
+- Restraint checks (internals not over-instrumented)
+- Code quality checks (spans closed in all paths, correct error handling patterns)
+
+Tier 2 checks are derived from the rubric's automatable rules. They are concrete, AST-based, deterministic checks — not vague quality judgments. Examples:
+
+| Rule | Check | Method |
+|------|-------|--------|
+| CDQ-001 | Spans closed in all code paths (including error paths) | AST: verify `span.end()` in all branches |
+| NDS-003 | Only instrumentation lines changed in agent's diff | AST: non-instrumentation lines identical to original |
+| COV-002 | Outbound call sites have enclosing spans | AST: detect call sites using dependency-derived patterns |
+| RST-001 | No spans on pure internal utility functions | AST: flag spans on synchronous, small, unexported, non-I/O functions |
+
+**Fix loop behavior by tier:**
+
+| Tier | Failure Behavior | Outcome if Unfixed |
+|------|-----------------|-------------------|
+| Tier 1 (structural) | Blocking — triggers retry/regeneration | File reverted, status "failed" |
+| Tier 2 blocking (Critical/Important impact) | Agent attempts fix; does not trigger fresh regeneration alone | File reverted, status "failed" |
+| Tier 2 advisory (Normal/Low impact) | Agent attempts fix as improvement guidance | File committed with quality annotations in PR description |
+
+The blocking/advisory classification reuses the rubric's existing impact levels. The [Implementation Phasing](./research/implementation-phasing.md) document defines the phase-by-phase rollout: Tier 1 complete in Phase 2, Tier 2 proof-of-concept (CDQ-001, NDS-003) in Phase 2, additional Tier 2 checks added as multi-file context becomes available in Phases 4 and 5.
+
+### Required Verification Levels
+
+Beyond unit tests, implementations must pass these verification levels before a phase is considered complete:
+
+**End-to-end smoke test:** Instrument a real file in a real project. The output compiles. No business logic is changed. OTel imports are correct. This single test would have caught the majority of first-draft failures.
+
+**Interface wiring verification:** Every interface (CLI, MCP, GitHub Action) invokes the Coordinator and produces visible output. Commands that parse arguments must also call handlers. Exported functions must be reachable from an entry point.
+
+**Validation chain integration:** The validation chain accepts the agent's own output on a real filesystem. Validators are tested against real agent output, not just synthetic fixtures. This catches the class of bug where each validator passes its unit tests but rejects valid instrumentation in practice.
+
+**Progress verification:** Coordinator callback hooks fire at appropriate points during a multi-file run. A test subscriber receives all expected events. This prevents the "hooks defined, never wired" failure mode.
+
+These levels are cumulative — later phases include all prior verification requirements. The [Implementation Phasing](./research/implementation-phasing.md) document maps specific verification requirements to each phase's acceptance gate.
 
 ---
 
