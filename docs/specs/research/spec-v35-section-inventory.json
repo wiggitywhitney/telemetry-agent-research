@@ -1,9 +1,10 @@
 {
-  "file": "docs/specs/telemetry-agent-spec-v3.5.md",
+  "file": "docs/specs/telemetry-agent-spec-v3.5.md (renamed to telemetry-agent-spec-v3.6.md)",
   "total_lines": 1545,
   "total_sections": 133,
   "generated": "2026-02-25",
   "purpose": "Pre-edit baseline for Decision 11 verification",
+  "known_limitations": "Heading extraction parsed fenced code blocks as sections (e.g., 'telemetry/registry/signals.yaml (added)', 'Example: express instrumentation added', YAML comment lines). This inflates the section count and causes the root section line_end (565) to not match total_lines (1545). The comparison in spec-v36-edit-verification.json is still valid because both inventories have the same bug — code-fence sections appear in both and cancel out in the diff. The 2-section gap between component sums and headline totals in the verification file reflects unmatched code-fence entries.",
   "sections": [
     {
       "line_start": 1,

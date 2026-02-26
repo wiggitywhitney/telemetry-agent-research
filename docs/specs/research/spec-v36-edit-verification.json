@@ -2,14 +2,19 @@
   "comparison": "spec-v35-section-inventory.json vs spec-v36-section-inventory.json",
   "generated": "2026-02-26",
   "purpose": "Decision 11 verification \u2014 confirm untouched sections survived v3.6 edits and JS-only scope correction",
+  "known_limitations": "Section counts include false positives from code-fence content parsed as headings (see spec-v35-section-inventory.json). The classified totals (unchanged + changed + removed = 131, unchanged + changed + added = 136) are lower than the headline section counts (133, 138) because 2 code-fence-parsed sections in each inventory could not be matched. The classified counts are accurate for real markdown headings.",
   "summary": {
     "pre_edit": {
       "lines": 1545,
-      "sections": 133
+      "sections": 133,
+      "sections_classified": 131,
+      "sections_note": "2 unclassified sections are code-fence parsing artifacts"
     },
     "post_edit": {
       "lines": 1632,
-      "sections": 138
+      "sections": 138,
+      "sections_classified": 136,
+      "sections_note": "2 unclassified sections are code-fence parsing artifacts"
     },
     "unchanged": 112,
     "changed": 18,

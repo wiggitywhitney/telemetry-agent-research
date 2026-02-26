@@ -332,7 +332,9 @@ Before instrumentation can begin, user must run `telemetry-agent init`. This is 
 │  6. Check for variable shadowing before inserting new variables │
 │  7. Add manual spans ONLY for business logic gaps               │
 │  8. Extend schema if needed (within guardrails)                 │
-│  9. Per-file validation (fix loop): syntax → lint → Weaver      │
+│  9. Per-file validation (fix loop):                              │
+│     Tier 1: syntax → lint → Weaver static check                 │
+│     Tier 2: semantic quality checks (coverage, restraint, CDQ)   │
 │  10. Return result object to Coordinator                        │
 └─────────────────────────────────────────────────────────────────┘
 ```

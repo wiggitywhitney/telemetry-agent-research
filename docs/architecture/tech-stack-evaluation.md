@@ -551,9 +551,11 @@ Changes the spec should incorporate based on this evaluation:
 
 ## Open Questions
 
-### 1. Agent Language: JavaScript vs TypeScript
+### 1. Agent Language: JavaScript vs TypeScript — RESOLVED
 
-The spec says "Plain TypeScript" for the Coordinator but targets JavaScript for the PoC. This needs resolution before implementation begins.
+**Decision: JavaScript with ESM modules.** `"type": "module"` in package.json. No build step. ts-morph handles JS target files via `allowJs: true`.
+
+The spec says "Plain TypeScript" for the Coordinator but targets JavaScript for the PoC. This was resolved during PRD #3 milestone 7 work.
 
 | Dimension | JavaScript | TypeScript |
 |-----------|-----------|------------|
@@ -566,12 +568,18 @@ The spec says "Plain TypeScript" for the Coordinator but targets JavaScript for 
 | **DX during development** | Simpler (no compilation), but errors surface at runtime | Stricter (compilation step), but errors surface at build time |
 | **Dependency footprint** | ts-morph already installs TypeScript compiler (~57 MB) — no savings | Same footprint — TypeScript is already present |
 
-**Assessment:** TypeScript has near-zero marginal cost (ts-morph already installs the compiler) and provides meaningful safety for the agent's own code — especially around the Zod schema types that define the LLM response contract. The "simplicity" argument for JavaScript is weaker when the TypeScript compiler is already in `node_modules`. The design document should resolve this.
+**Original assessment:** TypeScript has near-zero marginal cost (ts-morph already installs the compiler) and provides meaningful safety for the agent's own code — especially around the Zod schema types that define the LLM response contract. The "simplicity" argument for JavaScript is weaker when the TypeScript compiler is already in `node_modules`.
 
-### 2. Module System: CJS vs ESM
+**Resolution:** JavaScript chosen for the PoC. The simplicity of no build step and direct `node src/index.js` execution wins for a PoC. Zod provides runtime validation regardless. JSDoc type annotations available if needed for IDE support. TypeScript can be adopted post-PoC without structural changes.
 
-The spec doesn't specify. `"type": "module"` (ESM) is the modern default but constrains some library choices. The recommendation to use `node:child_process` over execa sidesteps the most acute constraint, making either module system viable. Vitest handles both (transforms CJS to ESM during test execution). If the agent uses TypeScript, ESM is the natural choice (`"module": "nodenext"` in tsconfig).
+### 2. Module System: CJS vs ESM — RESOLVED
 
-### 3. Prettier Config Resolution
+**Decision: ESM.** `"type": "module"` in package.json. All imports use ESM `import` syntax.
 
-Should the agent respect the target project's Prettier config? Almost certainly yes — reformatting code to a different style violates non-destructiveness. Prettier's `resolveConfig(filePath)` automatically finds and applies the nearest `.prettierrc`. The spec should state this explicitly.
+The spec doesn't specify. ESM is the modern default. The recommendation to use `node:child_process` over execa sidesteps the most acute library constraint. Vitest handles ESM natively. With JavaScript as the agent language, ESM is the natural and only sensible choice.
+
+### 3. Prettier Config Resolution — RESOLVED
+
+**Decision: Yes, respect target project's config.** Use `resolveConfig(filePath)` to find and apply the nearest `.prettierrc`.
+
+Reformatting code to a different style violates non-destructiveness. Prettier's `resolveConfig(filePath)` automatically finds and applies the nearest `.prettierrc`. The spec should state this explicitly.

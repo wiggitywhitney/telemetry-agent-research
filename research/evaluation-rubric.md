@@ -133,7 +133,7 @@ Runtime evaluation scope caveats: RES-002 requires multi-instance comparison. RE
 
 ---
 
-## Part 2: Code-Level Evaluation (30 Rules)
+## Part 2: Code-Level Evaluation (31 Rules)
 
 These rules evaluate the **source code** produced by an AI instrumentation agent. Unlike the Instrumentation Score (which monitors runtime OTLP streams), code-level evaluation assesses a point-in-time code diff with the goal of iterating on the agent.
 
