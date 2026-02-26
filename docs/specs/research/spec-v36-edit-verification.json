@@ -1,0 +1,299 @@
+{
+  "comparison": "spec-v35-section-inventory.json vs spec-v36-section-inventory.json",
+  "generated": "2026-02-26",
+  "purpose": "Decision 11 verification \u2014 confirm untouched sections survived v3.6 edits and JS-only scope correction",
+  "summary": {
+    "pre_edit": {
+      "lines": 1545,
+      "sections": 133
+    },
+    "post_edit": {
+      "lines": 1632,
+      "sections": 138
+    },
+    "unchanged": 112,
+    "changed": 18,
+    "added": 6,
+    "removed": 1
+  },
+  "unchanged_sections": [
+    "Why Schema-Driven?",
+    "Pre-Implementation Research Spikes",
+    "Schema Builder Agent (Future \u2014 Not in PoC)",
+    "Instrumentation Agent (Per-File)",
+    "Coordinator Programmatic API",
+    "Progress Callbacks",
+    "Coordinator Error Handling",
+    "Interfaces",
+    "MCP Server",
+    "CLI",
+    "GitHub Action",
+    "Weaver Integration Approach",
+    "Init Phase (Required)",
+    "What Init Does",
+    "Prerequisites (verified during init)",
+    "How It Works",
+    "Input",
+    "Processing (per file)",
+    "Output",
+    "Agent Output Format",
+    "System Prompt Structure",
+    "Known Failure Modes",
+    "Elision Detection",
+    "File Revert Protocol",
+    "Periodic Schema Checkpoints",
+    "SDK Init File Parsing Scope",
+    "Future: Parallel Processing",
+    "What Gets Instrumented",
+    "Instrumentation Priority Hierarchy",
+    "Review Sensitivity",
+    "Schema guidance",
+    "Patterns Not Covered (PoC)",
+    "What the Agent Actually Does to Code",
+    "Path 1: Auto-Instrumentation Library (Primary)",
+    "telemetry/registry/signals.yaml (added)",
+    "Path 2: Manual Span (Fallback for Business Logic)",
+    "Decision: Which Path?",
+    "Attribute Priority Chain",
+    "Schema Extension Guardrails",
+    "Auto-Instrumentation Libraries",
+    "Why Libraries First",
+    "Detection Flow",
+    "Library Discovery",
+    "Schema Updates for Libraries",
+    "Manual Spans (Secondary)",
+    "End-of-Run Validation (once, after all files)",
+    "Future Optimizations",
+    "If Tests Don't Exist",
+    "Agent Self-Instrumentation",
+    "Bootstrapping",
+    "Separate Telemetry Pipelines",
+    "Coordinator Spans (one trace per run)",
+    "Instrumentation Agent Spans (child spans per file)",
+    "Trace Context Propagation",
+    "Handling Existing Instrumentation",
+    "Already instrumented (complete)",
+    "Broken instrumentation",
+    "Telemetry removed by user",
+    "Schema as Source of Truth",
+    "Result Data",
+    "Why In-Memory Results",
+    "Result Structure",
+    "PR Summary",
+    "Schema Hash Tracking",
+    "Configuration",
+    "telemetry-agent.yaml (created by init, checked into repo)",
+    "Required",
+    "Agent API configuration",
+    "Agent behavior",
+    "Dependency strategy (set during init based on project type)",
+    "Limits and guardrails",
+    "Review",
+    "Execution mode",
+    "Future (not implemented in PoC, reserved for post-PoC)",
+    "What Goes Where",
+    "Dry Run Mode",
+    "Instrumentation Mode (Reserved)",
+    "Config Validation",
+    "Dependency Strategy",
+    "Cost Visibility",
+    "Minimum Viable Schema Example",
+    "registry_manifest.yaml",
+    "The root manifest \u2014 defines namespace and pulls in OTel semconv",
+    "Import official OTel semantic conventions",
+    "The [model] suffix specifies the subdirectory containing registry files",
+    "attributes.yaml",
+    "Custom attributes for gaps not covered by OTel semconv",
+    "signals.yaml",
+    "Span definitions \u2014 what telemetry the system emits",
+    "Validation",
+    "Validate schema syntax and references",
+    "Key Points",
+    "Resolved Questions",
+    "Q1: Weaver Schema Structure",
+    "Q2: Live-Check Setup",
+    "Q3: Error Handling",
+    "Q4: Semconv Lookup",
+    "Q5: Agent Framework Choice",
+    "Q6: Quality Checks for AI",
+    "Dependencies",
+    "PRD 25 (Autonomous Dev Infrastructure)",
+    "Separate Repository",
+    "Research Summary",
+    "Prior Art",
+    "Optional Telemetry Pattern",
+    "Instrumentation Level (Still Open)",
+    "References",
+    "Research Documents",
+    "External Resources",
+    "RS1 Research Sources (verified February 2026)",
+    "RS2 Research Sources (verified February 2026)",
+    "RS3 Research Sources (verified February 2026)"
+  ],
+  "changed_sections": [
+    {
+      "title": "Telemetry Agent Specification",
+      "pre_hash": "4cc5f0ab1e88",
+      "post_hash": "7cbfe109e728",
+      "pre_lines": "1-565",
+      "post_lines": "1-569"
+    },
+    {
+      "title": "Revision History",
+      "pre_hash": "cb12f63748d9",
+      "post_hash": "779f33ea0a24",
+      "pre_lines": "8-23",
+      "post_lines": "8-24"
+    },
+    {
+      "title": "Vision",
+      "pre_hash": "4d589d567af9",
+      "post_hash": "0569992c83a9",
+      "pre_lines": "24-40",
+      "post_lines": "25-41"
+    },
+    {
+      "title": "Architecture",
+      "pre_hash": "c61c9eeab009",
+      "post_hash": "b322dde63372",
+      "pre_lines": "51-233",
+      "post_lines": "52-236"
+    },
+    {
+      "title": "Coordinator + Agents Architecture",
+      "pre_hash": "212d96a43cd3",
+      "post_hash": "2b7fba445e37",
+      "pre_lines": "53-91",
+      "post_lines": "54-92"
+    },
+    {
+      "title": "Coordinator (Not AI)",
+      "pre_hash": "8f19d3c9a28b",
+      "post_hash": "3743e65e1186",
+      "pre_lines": "57-72",
+      "post_lines": "58-73"
+    },
+    {
+      "title": "Technology Stack (PoC)",
+      "pre_hash": "b37a5e4c2f2e",
+      "post_hash": "c5f885d0b5d2",
+      "pre_lines": "180-196",
+      "post_lines": "181-199"
+    },
+    {
+      "title": "Complete Workflow",
+      "pre_hash": "e1b5ee37755b",
+      "post_hash": "f7c79b2edcaf",
+      "pre_lines": "278-338",
+      "post_lines": "281-341"
+    },
+    {
+      "title": "File/Directory Processing",
+      "pre_hash": "242e1979faee",
+      "post_hash": "156954f657b1",
+      "pre_lines": "436-468",
+      "post_lines": "439-472"
+    },
+    {
+      "title": "Example: express instrumentation added",
+      "pre_hash": "71a531b91867",
+      "post_hash": "696463fcdfd7",
+      "pre_lines": "777-1106",
+      "post_lines": "781-1113"
+    },
+    {
+      "title": "Validation Chain",
+      "pre_hash": "85faa396b1af",
+      "post_hash": "ecbe7fc399bd",
+      "pre_lines": "806-899",
+      "post_lines": "810-906"
+    },
+    {
+      "title": "Per-File Validation (with fix loop)",
+      "pre_hash": "b3873a7af7a8",
+      "post_hash": "b708ce3d3418",
+      "pre_lines": "810-862",
+      "post_lines": "814-869"
+    },
+    {
+      "title": "PoC Scope",
+      "pre_hash": "b3160e33beea",
+      "post_hash": "1d21ec19d8ea",
+      "pre_lines": "1418-1481",
+      "post_lines": "1425-1489"
+    },
+    {
+      "title": "File filtering",
+      "pre_hash": "82ce3f3e4747",
+      "post_hash": "e34a009b34cd",
+      "pre_lines": "1139-1144",
+      "post_lines": "1146-1151"
+    },
+    {
+      "title": "instrumentationMode: balanced  # thorough | balanced | minimal",
+      "pre_hash": "5846bb4c4d4a",
+      "post_hash": "cdf5bf95a364",
+      "pre_lines": "1146-1230",
+      "post_lines": "1153-1237"
+    },
+    {
+      "title": "Resolve and view (includes semconv from dependencies)",
+      "pre_hash": "306b13440ddf",
+      "post_hash": "e0baa7647e11",
+      "pre_lines": "1342-1545",
+      "post_lines": "1349-1632"
+    },
+    {
+      "title": "In Scope",
+      "pre_hash": "215c80341f82",
+      "post_hash": "16b64c065070",
+      "pre_lines": "1420-1466",
+      "post_lines": "1427-1473"
+    },
+    {
+      "title": "Out of Scope (Future)",
+      "pre_hash": "acb32dc781fb",
+      "post_hash": "d5fc562bd23c",
+      "pre_lines": "1467-1481",
+      "post_lines": "1474-1489"
+    }
+  ],
+  "added_sections": [
+    {
+      "title": "Include and Exclude Patterns",
+      "lines": "1188-1191",
+      "reason": "Renamed from \"Exclude Patterns\""
+    },
+    {
+      "title": "Evaluation & Acceptance Criteria",
+      "lines": "1490-1568",
+      "reason": "v3.6 evaluation criteria"
+    },
+    {
+      "title": "Evaluation Philosophy",
+      "lines": "1494-1503",
+      "reason": "v3.6 evaluation criteria"
+    },
+    {
+      "title": "Rubric Dimensions",
+      "lines": "1504-1518",
+      "reason": "v3.6 evaluation criteria"
+    },
+    {
+      "title": "Two-Tier Validation Architecture",
+      "lines": "1519-1552",
+      "reason": "v3.6 evaluation criteria"
+    },
+    {
+      "title": "Required Verification Levels",
+      "lines": "1553-1568",
+      "reason": "v3.6 evaluation criteria"
+    }
+  ],
+  "removed_sections": [
+    {
+      "title": "Exclude Patterns",
+      "reason": "Renamed to \"Include and Exclude Patterns\""
+    }
+  ]
+}

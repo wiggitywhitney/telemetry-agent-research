@@ -3,7 +3,7 @@
 **Status:** Draft v3.6
 **Created:** 2026-02-05
 **Updated:** 2026-02-25
-**Purpose:** AI agent that auto-instruments TypeScript and JavaScript code with OpenTelemetry based on a Weaver schema
+**Purpose:** AI agent that auto-instruments JavaScript code with OpenTelemetry based on a Weaver schema
 
 ## Revision History
 
@@ -18,7 +18,7 @@
 | v3.4 | 2026-02-23 | **Weaver integration:** Completed RS2 research spike; moved conclusions into spec. PoC uses Weaver CLI for all operations (`check`, `resolve`, `diff`, `live-check`). MCP server (v0.21.2, experimental) documented but deferred to post-PoC — schema-changes-between-files invalidates in-memory registry, and MCP lacks `check`/`diff`/`resolve` equivalents. Added Weaver Integration Approach section with CLI operations table, registry directory snapshot strategy for `--baseline-registry`, and post-PoC optimization path. Documented `weaver registry search` CLI deprecation (v0.20.0). Added diff output limitations (`updated` change type not yet implemented; `uncategorized` catch-all exists). Removed RS2 from pre-implementation research spikes (one remains: RS3). |
 | v3.4.1 | 2026-02-23 | **Weaver version pinning:** Added `weaverMinVersion` config field and init-time version check — the spec references version-dependent behavior (v0.20.0 search deprecation, v0.21.2 MCP server, diff limitations) without previously ensuring the correct version is present. Init now runs `weaver --version` and aborts if below minimum. **Diff network call note:** Documented that `weaver registry diff` may trigger network calls to fetch the semconv dependency referenced in the baseline's `registry_manifest.yaml`, since `cp -r` copies the manifest URL reference, not resolved data. |
 | v3.5 | 2026-02-23 | **Fix loop design:** Completed RS3 research spike; moved conclusions into spec. Replaced per-stage retry loops with single-pass validation chain per attempt. Introduced 3-attempt hybrid strategy: initial generation → multi-turn fix → fresh regeneration. Multi-turn preserves context for simple errors; fresh regeneration avoids oscillation for stuck agents (supported by Olausson et al. ICLR 2024 finding that diverse initial samples outperform deep repair). Added diff-based lint checking — only agent-introduced errors trigger fixes, following SWE-agent's approach. Added error-count monotonicity and duplicate error detection as early-exit heuristics. Derived `maxFixAttempts: 2` from research (Olausson et al. found 1 repair attempt is the cost-effective sweet spot; our external validation feedback justifies one extra; Aider's hardcoded 3 reflections is the upper bound from practice). Derived `maxTokensPerFile: 80000` from per-call token estimates (~37K worst-case for 3 attempts on a 500-line file, 2× headroom). Added `validation_attempts`, `validation_strategy_used`, and `error_progression` to FileResult. Confirmed MCP `live_check` deferral to post-PoC — would require synthetic sample construction from AST, not justified when CLI `check` + end-of-run `live-check` cover structural and semantic validation respectively. Removed RS3 from pre-implementation research spikes (none remain). |
-| v3.6 | 2026-02-25 | **Evaluation criteria and JS support:** Added Evaluation & Acceptance Criteria section: evaluation philosophy (why unit tests aren't sufficient, grounded in PRD #2 findings), rubric dimension summary (6 code-level dimensions with references to full rubric), two-tier validation architecture (structural + semantic tiers feeding the fix loop with blocking/advisory classification), and required verification levels (e2e smoke test, interface wiring, validation chain integration, progress verification). Added JavaScript support to file discovery (exclude patterns, PoC scope). Made validation chain syntax check language-neutral (`tsc --noEmit` for TS, `node --check` for JS). Added Tier 2 (semantic) to validation chain with cross-reference to evaluation section. Elevated model configurability (`agentModel`, `agentEffort`) to a prominent design decision in Technology Stack. Updated Purpose line to include JavaScript. |
+| v3.6 | 2026-02-25 | **Evaluation criteria and JS PoC target:** Added Evaluation & Acceptance Criteria section: evaluation philosophy (why unit tests aren't sufficient, grounded in PRD #2 findings), rubric dimension summary (6 code-level dimensions with references to full rubric), two-tier validation architecture (structural + semantic tiers feeding the fix loop with blocking/advisory classification), and required verification levels (e2e smoke test, interface wiring, validation chain integration, progress verification). Switched PoC target from TypeScript to JavaScript — the demo codebase (commit-story-v2) is entirely JS. File discovery uses `**/*.js`, validation uses `node --check`. TypeScript support deferred to post-PoC (architecture supports it without structural changes). Added Tier 2 (semantic) to validation chain with cross-reference to evaluation section. Elevated model configurability (`agentModel`, `agentEffort`) to a prominent design decision in Technology Stack. |
 
 ---
 
@@ -27,7 +27,7 @@
 An AI agent that takes a Weaver schema and code files, then automatically instruments them with OpenTelemetry. The agent prioritizes semantic conventions, can extend the schema as needed, and validates its work through Weaver.
 
 **Short-term goal:** Works on commit-story-v2 repository
-**Long-term goal:** Distributable tool that works on any TypeScript codebase
+**Long-term goal:** Distributable tool that works on any TypeScript or JavaScript codebase
 
 ### Why Schema-Driven?
 
@@ -59,7 +59,7 @@ The system has a **Coordinator** (deterministic script) that manages workflow an
 - **What it is:** A deterministic TypeScript script using Node.js
 - **Responsibilities:**
   - Branch management (create feature branch)
-  - File iteration (glob for files to process, apply exclude patterns)
+  - File iteration (glob `**/*.js` for files to process, apply exclude patterns)
   - **File snapshots** before handing to agent (for revert on failure)
   - Spawn AI agent instances
   - Collect results from each agent (in-memory)
@@ -184,7 +184,7 @@ An `action.yml` that runs the CLI in a GitHub Actions runner. Setup steps: `acti
 |-----------|------------|-----------|
 | Coordinator | Plain TypeScript (Node.js) | Deterministic orchestration doesn't need a framework |
 | Instrumentation Agent | Direct Anthropic API via `@anthropic-ai/sdk` (model configurable via `agentModel`, default: Sonnet 4.6) | Single provider, maximum control, simplest debugging |
-| AST manipulation | ts-morph | TypeScript-native, full type access, scope analysis |
+| AST manipulation | ts-morph | TypeScript-native (also parses JavaScript), scope analysis |
 | Schema validation | Weaver CLI (`check`, `resolve`, `diff`, `live-check`) | CLI for all PoC Weaver operations — see Weaver Integration Approach |
 | Code formatting | Prettier | Post-transformation formatting |
 | MCP interface | MCP TypeScript SDK | Thin wrapper over Coordinator |
@@ -299,7 +299,7 @@ Before instrumentation can begin, user must run `telemetry-agent init`. This is 
 │  COORDINATOR (deterministic script):                            │
 │  1. Validate config (Zod schema)                                │
 │  2. Create feature branch (skipped in dry run)                  │
-│  3. Glob for files to process, apply exclude patterns           │
+│  3. Glob **/*.js for files, apply exclude patterns              │
 │  3b. Calculate cost ceiling (file count, sizes, token ceiling)  │
 │      → If confirmEstimate enabled, surface via callback          │
 │      → If user declines, abort run                              │
@@ -439,6 +439,7 @@ Full file output introduces a specific risk: the model may output a "complete" f
 ## File/Directory Processing
 
 - **User specifies:** file or directory
+- **Default include pattern:** `**/*.js` — the Coordinator globs this pattern within the user-specified directory.
 - **Directory processing:** sequential, one file at a time
 - **New AI instance per file:** prevents laziness, ensures quality
 - **Schema changes propagate:** via git commits on feature branch
@@ -817,7 +818,7 @@ Validation stays in the Instrumentation Agent so it can fix what it breaks. The 
 **Validation chain (single pass per attempt):** The following checks run as a single sequential pass after each agent attempt. If any stage fails, the remaining stages are skipped and the error from the *first failing stage* is fed back to the agent.
 
 **Tier 1 (structural):**
-1. **Syntax** — Language-appropriate verification: `tsc --noEmit` for TypeScript, `node --check` for JavaScript (code must compile or parse without errors)
+1. **Syntax** — `node --check` (code must parse without errors)
 2. **Lint** — Prettier/ESLint, diff-based (only agent-introduced errors — see below)
 3. **Weaver registry check** — static schema validation
 
@@ -1144,8 +1145,8 @@ confirmEstimate: true          # CLI only. true = print cost ceiling and prompt 
 
 # File filtering
 exclude:                        # Glob patterns to skip
-  - "**/*.test.{ts,js}"
-  - "**/*.spec.{ts,js}"
+  - "**/*.test.js"
+  - "**/*.spec.js"
   - "src/generated/**"          # SDK init file is auto-excluded regardless of this list
 
 # Future (not implemented in PoC, reserved for post-PoC)
@@ -1184,9 +1185,9 @@ This is useful during prompt tuning and calibration: you can run the agent again
 
 **Dry run skips periodic schema checkpoints.** Since schema changes are reverted after each file, checkpoints would validate a transient state that won't persist. The per-file validation chain (syntax → lint → Weaver static) still runs within each agent — that feedback is useful for the dry run summary.
 
-### Exclude Patterns
+### Include and Exclude Patterns
 
-The Coordinator applies exclude patterns after globbing. The SDK init file path (from `sdkInitFile`) is automatically excluded — the agent should not instrument the file that the Coordinator manages. Test files are excluded by default; override with an empty `exclude` list if you want the agent to consider them.
+The Coordinator globs `**/*.js` within the user-specified directory to discover source files, then applies exclude patterns. The SDK init file path (from `sdkInitFile`) is automatically excluded — the agent should not instrument the file that the Coordinator manages. Test files are excluded by default; override with an empty `exclude` list if you want the agent to consider them.
 
 ### Instrumentation Mode (Reserved)
 
@@ -1445,7 +1446,7 @@ Four levers:
 - GitHub Action with workflow_dispatch trigger
 
 **Instrumentation:**
-- TypeScript and JavaScript support, traces only (no metrics/logs yet)
+- JavaScript support, traces only (no metrics/logs yet)
 - Priority-based instrumentation hierarchy with configurable review sensitivity
 - Allowlist-first library discovery with npm registry fallback
 - Schema extension with semconv priority
@@ -1474,6 +1475,7 @@ Four levers:
 - Schema Builder Agent (auto-generate schema from codebase discovery)
 - Async/event-driven patterns (event emitters, pub/sub, cron jobs, queue consumers)
 - Multi-agent for different signal types (separate metrics/logs/traces agents)
+- TypeScript support (ts-morph and the architecture support it; PoC targets JavaScript because the demo codebase is JS)
 - Other languages
 - Smart test discovery
 - Vector database for OTel knowledge

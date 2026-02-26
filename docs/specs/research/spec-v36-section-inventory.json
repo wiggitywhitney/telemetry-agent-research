@@ -1,0 +1,1113 @@
+{
+  "file": "docs/specs/telemetry-agent-spec-v3.5.md",
+  "total_lines": 1632,
+  "total_sections": 138,
+  "generated": "2026-02-26",
+  "purpose": "Post-edit inventory for Decision 11 verification (v3.6 with JS-only PoC scope correction)",
+  "sections": [
+    {
+      "line_start": 1,
+      "line_end": 569,
+      "level": 1,
+      "title": "Telemetry Agent Specification",
+      "hash": "7cbfe109e728",
+      "line_count": 569
+    },
+    {
+      "line_start": 8,
+      "line_end": 24,
+      "level": 2,
+      "title": "Revision History",
+      "hash": "779f33ea0a24",
+      "line_count": 17
+    },
+    {
+      "line_start": 25,
+      "line_end": 41,
+      "level": 2,
+      "title": "Vision",
+      "hash": "0569992c83a9",
+      "line_count": 17
+    },
+    {
+      "line_start": 32,
+      "line_end": 41,
+      "level": 3,
+      "title": "Why Schema-Driven?",
+      "hash": "1ce34baad720",
+      "line_count": 10
+    },
+    {
+      "line_start": 42,
+      "line_end": 51,
+      "level": 2,
+      "title": "Pre-Implementation Research Spikes",
+      "hash": "f8ecffaaf570",
+      "line_count": 10
+    },
+    {
+      "line_start": 52,
+      "line_end": 236,
+      "level": 2,
+      "title": "Architecture",
+      "hash": "b322dde63372",
+      "line_count": 185
+    },
+    {
+      "line_start": 54,
+      "line_end": 92,
+      "level": 3,
+      "title": "Coordinator + Agents Architecture",
+      "hash": "2b7fba445e37",
+      "line_count": 39
+    },
+    {
+      "line_start": 58,
+      "line_end": 73,
+      "level": 4,
+      "title": "Coordinator (Not AI)",
+      "hash": "3743e65e1186",
+      "line_count": 16
+    },
+    {
+      "line_start": 74,
+      "line_end": 79,
+      "level": 4,
+      "title": "Schema Builder Agent (Future \u2014 Not in PoC)",
+      "hash": "4751dd6aebd0",
+      "line_count": 6
+    },
+    {
+      "line_start": 80,
+      "line_end": 92,
+      "level": 4,
+      "title": "Instrumentation Agent (Per-File)",
+      "hash": "c235639d37ca",
+      "line_count": 13
+    },
+    {
+      "line_start": 93,
+      "line_end": 122,
+      "level": 3,
+      "title": "Coordinator Programmatic API",
+      "hash": "038deba9af5d",
+      "line_count": 30
+    },
+    {
+      "line_start": 97,
+      "line_end": 122,
+      "level": 4,
+      "title": "Progress Callbacks",
+      "hash": "7af9dd387bb7",
+      "line_count": 26
+    },
+    {
+      "line_start": 123,
+      "line_end": 153,
+      "level": 3,
+      "title": "Coordinator Error Handling",
+      "hash": "cbaeab5a0baf",
+      "line_count": 31
+    },
+    {
+      "line_start": 154,
+      "line_end": 180,
+      "level": 3,
+      "title": "Interfaces",
+      "hash": "8bb050ac8c1c",
+      "line_count": 27
+    },
+    {
+      "line_start": 162,
+      "line_end": 172,
+      "level": 4,
+      "title": "MCP Server",
+      "hash": "6b20a1b82c79",
+      "line_count": 11
+    },
+    {
+      "line_start": 173,
+      "line_end": 176,
+      "level": 4,
+      "title": "CLI",
+      "hash": "3748fcd63339",
+      "line_count": 4
+    },
+    {
+      "line_start": 177,
+      "line_end": 180,
+      "level": 4,
+      "title": "GitHub Action",
+      "hash": "1a75a260da4c",
+      "line_count": 4
+    },
+    {
+      "line_start": 181,
+      "line_end": 199,
+      "level": 3,
+      "title": "Technology Stack (PoC)",
+      "hash": "c5f885d0b5d2",
+      "line_count": 19
+    },
+    {
+      "line_start": 200,
+      "line_end": 236,
+      "level": 3,
+      "title": "Weaver Integration Approach",
+      "hash": "5a0ac33c15c8",
+      "line_count": 37
+    },
+    {
+      "line_start": 237,
+      "line_end": 280,
+      "level": 2,
+      "title": "Init Phase (Required)",
+      "hash": "aac9e8bb5b00",
+      "line_count": 44
+    },
+    {
+      "line_start": 241,
+      "line_end": 270,
+      "level": 3,
+      "title": "What Init Does",
+      "hash": "a42c53edebc6",
+      "line_count": 30
+    },
+    {
+      "line_start": 271,
+      "line_end": 280,
+      "level": 3,
+      "title": "Prerequisites (verified during init)",
+      "hash": "04c60f5724fa",
+      "line_count": 10
+    },
+    {
+      "line_start": 281,
+      "line_end": 341,
+      "level": 2,
+      "title": "Complete Workflow",
+      "hash": "f7c79b2edcaf",
+      "line_count": 61
+    },
+    {
+      "line_start": 342,
+      "line_end": 438,
+      "level": 2,
+      "title": "How It Works",
+      "hash": "1dd9e09303ae",
+      "line_count": 97
+    },
+    {
+      "line_start": 344,
+      "line_end": 348,
+      "level": 3,
+      "title": "Input",
+      "hash": "e60d41fd9481",
+      "line_count": 5
+    },
+    {
+      "line_start": 349,
+      "line_end": 364,
+      "level": 3,
+      "title": "Processing (per file)",
+      "hash": "09b874ed70e5",
+      "line_count": 16
+    },
+    {
+      "line_start": 365,
+      "line_end": 368,
+      "level": 3,
+      "title": "Output",
+      "hash": "077589186a3b",
+      "line_count": 4
+    },
+    {
+      "line_start": 369,
+      "line_end": 382,
+      "level": 3,
+      "title": "Agent Output Format",
+      "hash": "1691aa76943d",
+      "line_count": 14
+    },
+    {
+      "line_start": 383,
+      "line_end": 412,
+      "level": 3,
+      "title": "System Prompt Structure",
+      "hash": "6b59704c80ea",
+      "line_count": 30
+    },
+    {
+      "line_start": 413,
+      "line_end": 428,
+      "level": 3,
+      "title": "Known Failure Modes",
+      "hash": "55ccdfd6aa49",
+      "line_count": 16
+    },
+    {
+      "line_start": 429,
+      "line_end": 438,
+      "level": 3,
+      "title": "Elision Detection",
+      "hash": "9036308d9227",
+      "line_count": 10
+    },
+    {
+      "line_start": 439,
+      "line_end": 472,
+      "level": 2,
+      "title": "File/Directory Processing",
+      "hash": "156954f657b1",
+      "line_count": 34
+    },
+    {
+      "line_start": 451,
+      "line_end": 456,
+      "level": 3,
+      "title": "File Revert Protocol",
+      "hash": "a5515570530a",
+      "line_count": 6
+    },
+    {
+      "line_start": 457,
+      "line_end": 462,
+      "level": 3,
+      "title": "Periodic Schema Checkpoints",
+      "hash": "cfe73d250dd6",
+      "line_count": 6
+    },
+    {
+      "line_start": 463,
+      "line_end": 466,
+      "level": 3,
+      "title": "SDK Init File Parsing Scope",
+      "hash": "4133a1658ed3",
+      "line_count": 4
+    },
+    {
+      "line_start": 467,
+      "line_end": 472,
+      "level": 3,
+      "title": "Future: Parallel Processing",
+      "hash": "7befc2f3ac3e",
+      "line_count": 6
+    },
+    {
+      "line_start": 473,
+      "line_end": 517,
+      "level": 2,
+      "title": "What Gets Instrumented",
+      "hash": "192c73946f6a",
+      "line_count": 45
+    },
+    {
+      "line_start": 475,
+      "line_end": 487,
+      "level": 3,
+      "title": "Instrumentation Priority Hierarchy",
+      "hash": "c16ef2ca0e63",
+      "line_count": 13
+    },
+    {
+      "line_start": 488,
+      "line_end": 499,
+      "level": 3,
+      "title": "Review Sensitivity",
+      "hash": "60b1867f2efa",
+      "line_count": 12
+    },
+    {
+      "line_start": 500,
+      "line_end": 504,
+      "level": 3,
+      "title": "Schema guidance",
+      "hash": "193257ce22db",
+      "line_count": 5
+    },
+    {
+      "line_start": 505,
+      "line_end": 517,
+      "level": 3,
+      "title": "Patterns Not Covered (PoC)",
+      "hash": "53dc908999dc",
+      "line_count": 13
+    },
+    {
+      "line_start": 518,
+      "line_end": 569,
+      "level": 2,
+      "title": "What the Agent Actually Does to Code",
+      "hash": "05163ed9bb2c",
+      "line_count": 52
+    },
+    {
+      "line_start": 522,
+      "line_end": 569,
+      "level": 3,
+      "title": "Path 1: Auto-Instrumentation Library (Primary)",
+      "hash": "6a186d8f3ed4",
+      "line_count": 48
+    },
+    {
+      "line_start": 570,
+      "line_end": 641,
+      "level": 1,
+      "title": "telemetry/registry/signals.yaml (added)",
+      "hash": "4b74db8dff54",
+      "line_count": 72
+    },
+    {
+      "line_start": 592,
+      "line_end": 641,
+      "level": 3,
+      "title": "Path 2: Manual Span (Fallback for Business Logic)",
+      "hash": "150516d3b421",
+      "line_count": 50
+    },
+    {
+      "line_start": 642,
+      "line_end": 780,
+      "level": 1,
+      "title": "telemetry/registry/signals.yaml (added)",
+      "hash": "9bb17d161989",
+      "line_count": 139
+    },
+    {
+      "line_start": 656,
+      "line_end": 665,
+      "level": 3,
+      "title": "Decision: Which Path?",
+      "hash": "7a1692ba2d87",
+      "line_count": 10
+    },
+    {
+      "line_start": 666,
+      "line_end": 689,
+      "level": 2,
+      "title": "Attribute Priority Chain",
+      "hash": "6043cebccc22",
+      "line_count": 24
+    },
+    {
+      "line_start": 676,
+      "line_end": 689,
+      "level": 3,
+      "title": "Schema Extension Guardrails",
+      "hash": "9827def5507e",
+      "line_count": 14
+    },
+    {
+      "line_start": 690,
+      "line_end": 780,
+      "level": 2,
+      "title": "Auto-Instrumentation Libraries",
+      "hash": "c5cc79c20cb1",
+      "line_count": 91
+    },
+    {
+      "line_start": 694,
+      "line_end": 699,
+      "level": 3,
+      "title": "Why Libraries First",
+      "hash": "03075f4ebf1a",
+      "line_count": 6
+    },
+    {
+      "line_start": 700,
+      "line_end": 709,
+      "level": 3,
+      "title": "Detection Flow",
+      "hash": "79405a6ebc3f",
+      "line_count": 10
+    },
+    {
+      "line_start": 710,
+      "line_end": 777,
+      "level": 3,
+      "title": "Library Discovery",
+      "hash": "efd6a5c0cda5",
+      "line_count": 68
+    },
+    {
+      "line_start": 778,
+      "line_end": 780,
+      "level": 3,
+      "title": "Schema Updates for Libraries",
+      "hash": "891c85542940",
+      "line_count": 3
+    },
+    {
+      "line_start": 781,
+      "line_end": 1113,
+      "level": 1,
+      "title": "Example: express instrumentation added",
+      "hash": "696463fcdfd7",
+      "line_count": 333
+    },
+    {
+      "line_start": 800,
+      "line_end": 809,
+      "level": 3,
+      "title": "Manual Spans (Secondary)",
+      "hash": "8dce6d73a7a3",
+      "line_count": 10
+    },
+    {
+      "line_start": 810,
+      "line_end": 906,
+      "level": 2,
+      "title": "Validation Chain",
+      "hash": "ecbe7fc399bd",
+      "line_count": 97
+    },
+    {
+      "line_start": 814,
+      "line_end": 869,
+      "level": 3,
+      "title": "Per-File Validation (with fix loop)",
+      "hash": "b708ce3d3418",
+      "line_count": 56
+    },
+    {
+      "line_start": 870,
+      "line_end": 895,
+      "level": 3,
+      "title": "End-of-Run Validation (once, after all files)",
+      "hash": "8792c6d42b83",
+      "line_count": 26
+    },
+    {
+      "line_start": 896,
+      "line_end": 899,
+      "level": 3,
+      "title": "Future Optimizations",
+      "hash": "7410b4b51a67",
+      "line_count": 4
+    },
+    {
+      "line_start": 900,
+      "line_end": 906,
+      "level": 3,
+      "title": "If Tests Don't Exist",
+      "hash": "d7fbb8ca9bf4",
+      "line_count": 7
+    },
+    {
+      "line_start": 907,
+      "line_end": 965,
+      "level": 2,
+      "title": "Agent Self-Instrumentation",
+      "hash": "89175b1abf04",
+      "line_count": 59
+    },
+    {
+      "line_start": 911,
+      "line_end": 914,
+      "level": 3,
+      "title": "Bootstrapping",
+      "hash": "5a9ba90feb91",
+      "line_count": 4
+    },
+    {
+      "line_start": 915,
+      "line_end": 925,
+      "level": 3,
+      "title": "Separate Telemetry Pipelines",
+      "hash": "e5754e21157f",
+      "line_count": 11
+    },
+    {
+      "line_start": 926,
+      "line_end": 935,
+      "level": 3,
+      "title": "Coordinator Spans (one trace per run)",
+      "hash": "a9f27714b145",
+      "line_count": 10
+    },
+    {
+      "line_start": 936,
+      "line_end": 951,
+      "level": 3,
+      "title": "Instrumentation Agent Spans (child spans per file)",
+      "hash": "132c1f81a9b3",
+      "line_count": 16
+    },
+    {
+      "line_start": 952,
+      "line_end": 955,
+      "level": 3,
+      "title": "Trace Context Propagation",
+      "hash": "bd6fd7159c60",
+      "line_count": 4
+    },
+    {
+      "line_start": 956,
+      "line_end": 965,
+      "level": 3,
+      "title": "PoC Scope",
+      "hash": "8d929fab22b0",
+      "line_count": 10
+    },
+    {
+      "line_start": 966,
+      "line_end": 983,
+      "level": 2,
+      "title": "Handling Existing Instrumentation",
+      "hash": "d5cef8863331",
+      "line_count": 18
+    },
+    {
+      "line_start": 968,
+      "line_end": 971,
+      "level": 3,
+      "title": "Already instrumented (complete)",
+      "hash": "50d41e3e21ef",
+      "line_count": 4
+    },
+    {
+      "line_start": 972,
+      "line_end": 976,
+      "level": 3,
+      "title": "Broken instrumentation",
+      "hash": "8304c9780d8d",
+      "line_count": 5
+    },
+    {
+      "line_start": 977,
+      "line_end": 983,
+      "level": 3,
+      "title": "Telemetry removed by user",
+      "hash": "fc30f227e9a2",
+      "line_count": 7
+    },
+    {
+      "line_start": 984,
+      "line_end": 992,
+      "level": 2,
+      "title": "Schema as Source of Truth",
+      "hash": "98d6bd3ac926",
+      "line_count": 9
+    },
+    {
+      "line_start": 993,
+      "line_end": 1108,
+      "level": 2,
+      "title": "Result Data",
+      "hash": "13007df794b4",
+      "line_count": 116
+    },
+    {
+      "line_start": 997,
+      "line_end": 1002,
+      "level": 3,
+      "title": "Why In-Memory Results",
+      "hash": "4b6ffb36900f",
+      "line_count": 6
+    },
+    {
+      "line_start": 1003,
+      "line_end": 1088,
+      "level": 3,
+      "title": "Result Structure",
+      "hash": "fc0b6b236dc0",
+      "line_count": 86
+    },
+    {
+      "line_start": 1089,
+      "line_end": 1102,
+      "level": 3,
+      "title": "PR Summary",
+      "hash": "177f43b0d916",
+      "line_count": 14
+    },
+    {
+      "line_start": 1103,
+      "line_end": 1108,
+      "level": 3,
+      "title": "Schema Hash Tracking",
+      "hash": "daf35c409410",
+      "line_count": 6
+    },
+    {
+      "line_start": 1109,
+      "line_end": 1113,
+      "level": 2,
+      "title": "Configuration",
+      "hash": "df1381035f8d",
+      "line_count": 5
+    },
+    {
+      "line_start": 1114,
+      "line_end": 1115,
+      "level": 1,
+      "title": "telemetry-agent.yaml (created by init, checked into repo)",
+      "hash": "7084698b5e38",
+      "line_count": 2
+    },
+    {
+      "line_start": 1116,
+      "line_end": 1119,
+      "level": 1,
+      "title": "Required",
+      "hash": "19e6fc1e20f9",
+      "line_count": 4
+    },
+    {
+      "line_start": 1120,
+      "line_end": 1123,
+      "level": 1,
+      "title": "Agent API configuration",
+      "hash": "673df390c8f7",
+      "line_count": 4
+    },
+    {
+      "line_start": 1124,
+      "line_end": 1127,
+      "level": 1,
+      "title": "Agent behavior",
+      "hash": "df52e1b6b950",
+      "line_count": 4
+    },
+    {
+      "line_start": 1128,
+      "line_end": 1130,
+      "level": 1,
+      "title": "Dependency strategy (set during init based on project type)",
+      "hash": "134430157aee",
+      "line_count": 3
+    },
+    {
+      "line_start": 1131,
+      "line_end": 1138,
+      "level": 1,
+      "title": "Limits and guardrails",
+      "hash": "ad74a7b799ae",
+      "line_count": 8
+    },
+    {
+      "line_start": 1139,
+      "line_end": 1141,
+      "level": 1,
+      "title": "Review",
+      "hash": "82afae110599",
+      "line_count": 3
+    },
+    {
+      "line_start": 1142,
+      "line_end": 1145,
+      "level": 1,
+      "title": "Execution mode",
+      "hash": "10df881d8839",
+      "line_count": 4
+    },
+    {
+      "line_start": 1146,
+      "line_end": 1151,
+      "level": 1,
+      "title": "File filtering",
+      "hash": "e34a009b34cd",
+      "line_count": 6
+    },
+    {
+      "line_start": 1152,
+      "line_end": 1152,
+      "level": 1,
+      "title": "Future (not implemented in PoC, reserved for post-PoC)",
+      "hash": "137a342aff3c",
+      "line_count": 1
+    },
+    {
+      "line_start": 1153,
+      "line_end": 1237,
+      "level": 1,
+      "title": "instrumentationMode: balanced  # thorough | balanced | minimal",
+      "hash": "cdf5bf95a364",
+      "line_count": 85
+    },
+    {
+      "line_start": 1160,
+      "line_end": 1179,
+      "level": 3,
+      "title": "What Goes Where",
+      "hash": "fbb971b356d2",
+      "line_count": 20
+    },
+    {
+      "line_start": 1180,
+      "line_end": 1187,
+      "level": 3,
+      "title": "Dry Run Mode",
+      "hash": "7ad5cbb1f638",
+      "line_count": 8
+    },
+    {
+      "line_start": 1188,
+      "line_end": 1191,
+      "level": 3,
+      "title": "Include and Exclude Patterns",
+      "hash": "03334c8990de",
+      "line_count": 4
+    },
+    {
+      "line_start": 1192,
+      "line_end": 1195,
+      "level": 3,
+      "title": "Instrumentation Mode (Reserved)",
+      "hash": "bcfc56e01872",
+      "line_count": 4
+    },
+    {
+      "line_start": 1196,
+      "line_end": 1199,
+      "level": 3,
+      "title": "Config Validation",
+      "hash": "fbdb3a335671",
+      "line_count": 4
+    },
+    {
+      "line_start": 1200,
+      "line_end": 1214,
+      "level": 3,
+      "title": "Dependency Strategy",
+      "hash": "a8038e3c3af6",
+      "line_count": 15
+    },
+    {
+      "line_start": 1215,
+      "line_end": 1228,
+      "level": 3,
+      "title": "Cost Visibility",
+      "hash": "483675015035",
+      "line_count": 14
+    },
+    {
+      "line_start": 1229,
+      "line_end": 1237,
+      "level": 2,
+      "title": "Minimum Viable Schema Example",
+      "hash": "7ef5d716421f",
+      "line_count": 9
+    },
+    {
+      "line_start": 1235,
+      "line_end": 1237,
+      "level": 3,
+      "title": "registry_manifest.yaml",
+      "hash": "1b54760559e0",
+      "line_count": 3
+    },
+    {
+      "line_start": 1238,
+      "line_end": 1243,
+      "level": 1,
+      "title": "The root manifest \u2014 defines namespace and pulls in OTel semconv",
+      "hash": "b69ea03fa82a",
+      "line_count": 6
+    },
+    {
+      "line_start": 1244,
+      "line_end": 1244,
+      "level": 1,
+      "title": "Import official OTel semantic conventions",
+      "hash": "67c60bdc59e0",
+      "line_count": 1
+    },
+    {
+      "line_start": 1245,
+      "line_end": 1255,
+      "level": 1,
+      "title": "The [model] suffix specifies the subdirectory containing registry files",
+      "hash": "bb060bdf5b8a",
+      "line_count": 11
+    },
+    {
+      "line_start": 1253,
+      "line_end": 1255,
+      "level": 3,
+      "title": "attributes.yaml",
+      "hash": "e9973eec1374",
+      "line_count": 3
+    },
+    {
+      "line_start": 1256,
+      "line_end": 1310,
+      "level": 1,
+      "title": "Custom attributes for gaps not covered by OTel semconv",
+      "hash": "51dc695f0017",
+      "line_count": 55
+    },
+    {
+      "line_start": 1308,
+      "line_end": 1310,
+      "level": 3,
+      "title": "signals.yaml",
+      "hash": "a0f3b130ecdc",
+      "line_count": 3
+    },
+    {
+      "line_start": 1311,
+      "line_end": 1345,
+      "level": 1,
+      "title": "Span definitions \u2014 what telemetry the system emits",
+      "hash": "edcfce50015c",
+      "line_count": 35
+    },
+    {
+      "line_start": 1343,
+      "line_end": 1345,
+      "level": 3,
+      "title": "Validation",
+      "hash": "c9811a5da3b8",
+      "line_count": 3
+    },
+    {
+      "line_start": 1346,
+      "line_end": 1348,
+      "level": 1,
+      "title": "Validate schema syntax and references",
+      "hash": "bcb76c0aeff6",
+      "line_count": 3
+    },
+    {
+      "line_start": 1349,
+      "line_end": 1632,
+      "level": 1,
+      "title": "Resolve and view (includes semconv from dependencies)",
+      "hash": "e0baa7647e11",
+      "line_count": 284
+    },
+    {
+      "line_start": 1353,
+      "line_end": 1364,
+      "level": 3,
+      "title": "Key Points",
+      "hash": "a1938f9766c6",
+      "line_count": 12
+    },
+    {
+      "line_start": 1365,
+      "line_end": 1409,
+      "level": 2,
+      "title": "Resolved Questions",
+      "hash": "801434a23bc8",
+      "line_count": 45
+    },
+    {
+      "line_start": 1367,
+      "line_end": 1371,
+      "level": 3,
+      "title": "Q1: Weaver Schema Structure",
+      "hash": "6fca1cb1342a",
+      "line_count": 5
+    },
+    {
+      "line_start": 1372,
+      "line_end": 1380,
+      "level": 3,
+      "title": "Q2: Live-Check Setup",
+      "hash": "2b13479d1ab6",
+      "line_count": 9
+    },
+    {
+      "line_start": 1381,
+      "line_end": 1387,
+      "level": 3,
+      "title": "Q3: Error Handling",
+      "hash": "67aa9154b2a6",
+      "line_count": 7
+    },
+    {
+      "line_start": 1388,
+      "line_end": 1394,
+      "level": 3,
+      "title": "Q4: Semconv Lookup",
+      "hash": "4128c999c790",
+      "line_count": 7
+    },
+    {
+      "line_start": 1395,
+      "line_end": 1399,
+      "level": 3,
+      "title": "Q5: Agent Framework Choice",
+      "hash": "897fc95303eb",
+      "line_count": 5
+    },
+    {
+      "line_start": 1400,
+      "line_end": 1409,
+      "level": 3,
+      "title": "Q6: Quality Checks for AI",
+      "hash": "c0ac6f70c227",
+      "line_count": 10
+    },
+    {
+      "line_start": 1410,
+      "line_end": 1424,
+      "level": 2,
+      "title": "Dependencies",
+      "hash": "6f10513cb406",
+      "line_count": 15
+    },
+    {
+      "line_start": 1412,
+      "line_end": 1417,
+      "level": 3,
+      "title": "PRD 25 (Autonomous Dev Infrastructure)",
+      "hash": "c04494dc736e",
+      "line_count": 6
+    },
+    {
+      "line_start": 1418,
+      "line_end": 1424,
+      "level": 3,
+      "title": "Separate Repository",
+      "hash": "ae71082160c8",
+      "line_count": 7
+    },
+    {
+      "line_start": 1425,
+      "line_end": 1489,
+      "level": 2,
+      "title": "PoC Scope",
+      "hash": "1d21ec19d8ea",
+      "line_count": 65
+    },
+    {
+      "line_start": 1427,
+      "line_end": 1473,
+      "level": 3,
+      "title": "In Scope",
+      "hash": "16b64c065070",
+      "line_count": 47
+    },
+    {
+      "line_start": 1474,
+      "line_end": 1489,
+      "level": 3,
+      "title": "Out of Scope (Future)",
+      "hash": "d5fc562bd23c",
+      "line_count": 16
+    },
+    {
+      "line_start": 1490,
+      "line_end": 1568,
+      "level": 2,
+      "title": "Evaluation & Acceptance Criteria",
+      "hash": "9a4521d70c9f",
+      "line_count": 79
+    },
+    {
+      "line_start": 1494,
+      "line_end": 1503,
+      "level": 3,
+      "title": "Evaluation Philosophy",
+      "hash": "4b2d85beec1f",
+      "line_count": 10
+    },
+    {
+      "line_start": 1504,
+      "line_end": 1518,
+      "level": 3,
+      "title": "Rubric Dimensions",
+      "hash": "95bea4fa2af0",
+      "line_count": 15
+    },
+    {
+      "line_start": 1519,
+      "line_end": 1552,
+      "level": 3,
+      "title": "Two-Tier Validation Architecture",
+      "hash": "ebe972d43e3f",
+      "line_count": 34
+    },
+    {
+      "line_start": 1553,
+      "line_end": 1568,
+      "level": 3,
+      "title": "Required Verification Levels",
+      "hash": "fb82225346ee",
+      "line_count": 16
+    },
+    {
+      "line_start": 1569,
+      "line_end": 1593,
+      "level": 2,
+      "title": "Research Summary",
+      "hash": "3d4a87b85b48",
+      "line_count": 25
+    },
+    {
+      "line_start": 1571,
+      "line_end": 1577,
+      "level": 3,
+      "title": "Prior Art",
+      "hash": "0ccba4822399",
+      "line_count": 7
+    },
+    {
+      "line_start": 1578,
+      "line_end": 1585,
+      "level": 3,
+      "title": "Optional Telemetry Pattern",
+      "hash": "995a78c5860f",
+      "line_count": 8
+    },
+    {
+      "line_start": 1586,
+      "line_end": 1593,
+      "level": 3,
+      "title": "Instrumentation Level (Still Open)",
+      "hash": "e4e2d48a3ca2",
+      "line_count": 8
+    },
+    {
+      "line_start": 1594,
+      "line_end": 1632,
+      "level": 2,
+      "title": "References",
+      "hash": "e0ffee701324",
+      "line_count": 39
+    },
+    {
+      "line_start": 1596,
+      "line_end": 1602,
+      "level": 3,
+      "title": "Research Documents",
+      "hash": "2c3d064ac7e9",
+      "line_count": 7
+    },
+    {
+      "line_start": 1603,
+      "line_end": 1608,
+      "level": 3,
+      "title": "External Resources",
+      "hash": "78730fab2bde",
+      "line_count": 6
+    },
+    {
+      "line_start": 1609,
+      "line_end": 1617,
+      "level": 3,
+      "title": "RS1 Research Sources (verified February 2026)",
+      "hash": "f93ac33fb08c",
+      "line_count": 9
+    },
+    {
+      "line_start": 1618,
+      "line_end": 1624,
+      "level": 3,
+      "title": "RS2 Research Sources (verified February 2026)",
+      "hash": "51d02217c99c",
+      "line_count": 7
+    },
+    {
+      "line_start": 1625,
+      "line_end": 1632,
+      "level": 3,
+      "title": "RS3 Research Sources (verified February 2026)",
+      "hash": "ce0a96c305f4",
+      "line_count": 8
+    }
+  ]
+}

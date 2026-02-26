@@ -74,11 +74,11 @@ The evaluation showed that library code existed for almost all of these, but wir
 
 ### What Gets Built
 
-Config validation (Zod), prerequisite checks (as library functions), the per-file Instrumentation Agent (LLM call with prompt, output parsing, basic elision rejection), file write to disk. Basic elision rejection here is an output sanity check — reject obviously truncated output (placeholder patterns, output significantly shorter than input) before attempting validation. Phase 2 formalizes elision detection as the first step of the validation chain with more rigorous pattern matching. Exposed as a programmatic API — no CLI yet, no coordinator yet. Supports both TypeScript and JavaScript files — file discovery uses `**/*.{ts,js}` (or configurable), and validation adapts per language (`tsc --noEmit` for TypeScript, `node --check` for JavaScript).
+Config validation (Zod), prerequisite checks (as library functions), the per-file Instrumentation Agent (LLM call with prompt, output parsing, basic elision rejection), file write to disk. Basic elision rejection here is an output sanity check — reject obviously truncated output (placeholder patterns, output significantly shorter than input) before attempting validation. Phase 2 formalizes elision detection as the first step of the validation chain with more rigorous pattern matching. Exposed as a programmatic API — no CLI yet, no coordinator yet. Targets JavaScript files — file discovery uses `**/*.js` (configurable via exclude patterns), and validation uses `node --check`.
 
 ### Acceptance Gate
 
-Call `instrumentFile(filePath, config)` on a real file in a real project — both a TypeScript file and a JavaScript file. The output compiles/parses (`tsc --noEmit` for TS, `node --check` for JS). No business logic is changed. OTel imports are from `@opentelemetry/api` only. Spans are closed in all paths.
+Call `instrumentFile(filePath, config)` on a real JavaScript file in a real project. The output parses (`node --check`). No business logic is changed. OTel imports are from `@opentelemetry/api` only. Spans are closed in all paths.
 
 ### Rubric Rules That Apply
 
