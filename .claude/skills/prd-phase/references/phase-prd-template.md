@@ -95,7 +95,7 @@ Reproduce the table and add line number ranges:
 |---------|-------|-------|-------|
 | [section name] | [Full/Subsection/Fields] | [start-end] | [from phasing doc] |
 
-**Spec file**: `docs/specs/telemetry-agent-spec-v3.7.md`
+**Spec file**: `docs/specs/telemetry-agent-spec-v3.8.md`
 
 The implementing AI should read each listed section. "Full" means read the entire section. "Subsection only" means read only the named part. "Fields only" means extract just the configuration field definitions.
 

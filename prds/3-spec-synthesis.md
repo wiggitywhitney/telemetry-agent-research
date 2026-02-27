@@ -115,7 +115,7 @@ Analyze the evaluation report from PRD #2, identify patterns (strengths to prese
 ## Dependencies
 
 - PRD #2: Evaluation report must exist before synthesis begins
-- The telemetry agent spec (v3.7) at `docs/specs/telemetry-agent-spec-v3.7.md` in this repo
+- The telemetry agent spec (v3.8) at `docs/specs/telemetry-agent-spec-v3.8.md` in this repo
 
 ## Blocks
 
