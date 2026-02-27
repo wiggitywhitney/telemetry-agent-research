@@ -17,9 +17,9 @@
 | v3.3 | 2026-02-23 | **Prompt engineering:** Completed RS1 research spike; moved conclusions into spec. Agent outputs full file replacement (not diffs), justified on architectural simplicity and documented fragility of diff application logic. Added system prompt structure guidance (role → schema → rules → 3-5 examples → file → format spec) per Anthropic's Claude 4.x best practices. Added Claude 4.x prompt hygiene section (remove anti-laziness directives, use `effort` parameter, frame output completeness as format spec). Added elision detection as Coordinator pre-validation step. Added `largeFileThresholdLines` config. Added known failure modes table with mitigations. Removed RS1 from pre-implementation research spikes (two remain: RS2, RS3). |
 | v3.4 | 2026-02-23 | **Weaver integration:** Completed RS2 research spike; moved conclusions into spec. PoC uses Weaver CLI for all operations (`check`, `resolve`, `diff`, `live-check`). MCP server (v0.21.2, experimental) documented but deferred to post-PoC — schema-changes-between-files invalidates in-memory registry, and MCP lacks `check`/`diff`/`resolve` equivalents. Added Weaver Integration Approach section with CLI operations table, registry directory snapshot strategy for `--baseline-registry`, and post-PoC optimization path. Documented `weaver registry search` CLI deprecation (v0.20.0). Added diff output limitations (`updated` change type not yet implemented; `uncategorized` catch-all exists). Removed RS2 from pre-implementation research spikes (one remains: RS3). |
 | v3.4.1 | 2026-02-23 | **Weaver version pinning:** Added `weaverMinVersion` config field and init-time version check — the spec references version-dependent behavior (v0.20.0 search deprecation, v0.21.2 MCP server, diff limitations) without previously ensuring the correct version is present. Init now runs `weaver --version` and aborts if below minimum. **Diff network call note:** Documented that `weaver registry diff` may trigger network calls to fetch the semconv dependency referenced in the baseline's `registry_manifest.yaml`, since `cp -r` copies the manifest URL reference, not resolved data. |
-| v3.5 | 2026-02-23 | **Fix loop design:** Completed RS3 research spike; moved conclusions into spec. Replaced per-stage retry loops with single-pass validation chain per attempt. Introduced 3-attempt hybrid strategy: initial generation → multi-turn fix → fresh regeneration. Multi-turn preserves context for simple errors; fresh regeneration avoids oscillation for stuck agents (supported by Olausson et al. ICLR 2024 finding that diverse initial samples outperform deep repair). Added diff-based lint checking — only agent-introduced errors trigger fixes, following SWE-agent's approach. Added error-count monotonicity and duplicate error detection as early-exit heuristics. Derived `maxFixAttempts: 2` from research (Olausson et al. found 1 repair attempt is the cost-effective sweet spot; our external validation feedback justifies one extra; Aider's hardcoded 3 reflections is the upper bound from practice). Derived `maxTokensPerFile: 80000` from per-call token estimates (~37K worst-case for 3 attempts on a 500-line file, 2× headroom). Added `validation_attempts`, `validation_strategy_used`, and `error_progression` to FileResult. Confirmed MCP `live_check` deferral to post-PoC — would require synthetic sample construction from AST, not justified when CLI `check` + end-of-run `live-check` cover structural and semantic validation respectively. Removed RS3 from pre-implementation research spikes (none remain). |
+| v3.5 | 2026-02-23 | **Fix loop design:** Completed RS3 research spike; moved conclusions into spec. Replaced per-stage retry loops with single-pass validation chain per attempt. Introduced 3-attempt hybrid strategy: initial generation → multi-turn fix → fresh regeneration. Multi-turn preserves context for simple errors; fresh regeneration avoids oscillation for stuck agents (supported by Olausson et al. ICLR 2024 finding that diverse initial samples outperform deep repair). Added diff-based lint checking — only agent-introduced errors trigger fixes, following SWE-agent's approach. Added error-count monotonicity and duplicate error detection as early-exit heuristics. Derived `maxFixAttempts: 2` from research (Olausson et al. found 1 repair attempt is the cost-effective sweet spot; our external validation feedback justifies one extra; Aider's hardcoded 3 reflections is the upper bound from practice). Derived `maxTokensPerFile: 80000` from per-call token estimates (~37K worst-case for 3 attempts on a 500-line file, 2× headroom). Added `validationAttempts`, `validationStrategyUsed`, and `errorProgression` to FileResult. Confirmed MCP `live_check` deferral to post-PoC — would require synthetic sample construction from AST, not justified when CLI `check` + end-of-run `live-check` cover structural and semantic validation respectively. Removed RS3 from pre-implementation research spikes (none remain). |
 | v3.6 | 2026-02-25 | **Evaluation criteria and JS PoC target:** Added Evaluation & Acceptance Criteria section: evaluation philosophy (why unit tests aren't sufficient, grounded in PRD #2 findings), rubric dimension summary (6 code-level dimensions with references to full rubric), two-tier validation architecture (structural + semantic tiers feeding the fix loop with blocking/advisory classification), and required verification levels (e2e smoke test, interface wiring, validation chain integration, progress verification). Switched PoC target from TypeScript to JavaScript — the demo codebase (commit-story-v2) is entirely JS. File discovery uses `**/*.js`, validation uses `node --check`. TypeScript support deferred to post-PoC (architecture supports it without structural changes). Added Tier 2 (semantic) to validation chain with cross-reference to evaluation section. Elevated model configurability (`agentModel`, `agentEffort`) to a prominent design decision in Technology Stack. |
-| v3.7 | 2026-02-26 | **JavaScript notation and design-document types:** Converted all TypeScript interface blocks and code examples to JavaScript/JSDoc notation. Added 7 new types discovered during design document work: `InstrumentationOutput` (agent's raw output), `SpanCategories`, `TokenUsage`, `CheckResult` (individual validation check), `ValidationResult` (aggregated validation chain output), `ValidateFileInput` (options object for validation chain), `RunResult` (coordinator's return type for interfaces). Evolved `FileResult`: added `"skipped"` status for already-instrumented files, `advisoryAnnotations` for Tier 2 PR display, `tokenUsage` for per-file cost tracking, `SpanCategories` reference. |
+| v3.7 | 2026-02-26 | **JavaScript notation and design-document types:** Converted all TypeScript interface blocks and code examples to JavaScript/JSDoc notation. Standardized all field names to camelCase (JavaScript convention) — breaking change from v3.6 snake_case names (e.g. `spans_added` → `spansAdded`, `libraries_needed` → `librariesNeeded`, `last_error` → `lastError`). Added 7 new types discovered during design document work: `InstrumentationOutput` (agent's raw output), `SpanCategories`, `TokenUsage`, `CheckResult` (individual validation check), `ValidationResult` (aggregated validation chain output), `ValidateFileInput` (options object for validation chain), `RunResult` (coordinator's return type for interfaces). Evolved `FileResult`: added `"skipped"` status for already-instrumented files, `advisoryAnnotations` for Tier 2 PR display, `tokenUsage` for per-file cost tracking, `SpanCategories` reference. Converted system prompt instructions and file paths from TypeScript to JavaScript. |
 
 ---
 
@@ -282,7 +282,7 @@ Before instrumentation can begin, user must run `telemetry-agent init`. This is 
 1. **Verify prerequisites**
    - `package.json` exists → extracts project name for namespace
    - `@opentelemetry/api` in `peerDependencies` (or offers to add it — always as peerDependency, never direct)
-   - OTel SDK initialization exists somewhere → **records path in config** (e.g., `src/telemetry/setup.ts`)
+   - OTel SDK initialization exists somewhere → **records path in config** (e.g., `src/telemetry/setup.js`)
    - OTLP endpoint configured
    - Test suite exists (warns if missing, continues anyway)
    - Verify Weaver binary version (`weaver --version`) meets `weaverMinVersion` (default: `0.21.2`). The spec depends on version-specific behavior: `registry search` deprecation (v0.20.0), MCP server and `weaver serve` (v0.21.2), diff output limitations. Running against an older Weaver version may produce silent failures or missing capabilities. If the version is below the minimum, init aborts with a clear message.
@@ -350,7 +350,7 @@ Before instrumentation can begin, user must run `telemetry-agent init`. This is 
 │     e. If agent succeeded → commit code + schema changes        │
 │     f. Every N files → periodic schema checkpoint               │
 │  5. After all files:                                            │
-│     a. Aggregate libraries_needed from all results              │
+│     a. Aggregate librariesNeeded from all results               │
 │     b. npm install discovered libraries per dependencyStrategy   │
 │        (@opentelemetry/api is always peerDependency regardless) │
 │     c. Write SDK init file once (register all libraries)        │
@@ -367,7 +367,7 @@ Before instrumentation can begin, user must run `telemetry-agent init`. This is 
 │  2. Read schema → understand patterns                           │
 │  3. Analyze imports → what libraries/frameworks are used?        │
 │  4. Check schema for libraries, discover new via allowlist/npm  │
-│  5. Record libraries_needed in result (do NOT modify SDK file)  │
+│  5. Record librariesNeeded in result (do NOT modify SDK file)   │
 │  6. Check for variable shadowing before inserting new variables │
 │  7. Add manual spans ONLY for business logic gaps               │
 │  8. Extend schema if needed (within guardrails)                 │
@@ -391,7 +391,7 @@ Before instrumentation can begin, user must run `telemetry-agent init`. This is 
 1. **Check imports** — what libraries/frameworks does this file use?
 2. **Check schema for libraries** — does schema already specify instrumentation?
 3. **Discover new libraries** — if not in schema, check allowlist then npm registry
-4. **Record library needs** — add to result's `libraries_needed` with package name and import name (Coordinator handles installation and SDK registration later)
+4. **Record library needs** — add to result's `librariesNeeded` with package name and import name (Coordinator handles installation and SDK registration later)
 5. **Find business logic gaps** — code paths that libraries can't instrument
 6. **Skip already-instrumented functions** — pattern match for `tracer.startActiveSpan` etc.
 7. **Variable shadowing check** — before inserting `span`, `tracer`, or other OTel variables, use ts-morph scope analysis to check for existing variables with the same name. If collision detected, use suffixed names (`otelSpan`, `otelTracer`).
@@ -409,7 +409,7 @@ Before instrumentation can begin, user must run `telemetry-agent init`. This is 
 
 ### Agent Output Format
 
-The Instrumentation Agent outputs a **complete file replacement** — the entire instrumented TypeScript file, not a diff or patch.
+The Instrumentation Agent outputs a **complete file replacement** — the entire instrumented JavaScript file, not a diff or patch.
 
 **Why full file replacement:**
 - **Architectural simplicity.** The Coordinator doesn't need diff-apply logic. The agent returns a complete file; the Coordinator writes it to disk. No fuzzy matching, no hunk location, no progressive fallback strategies. Fabian Hertwig's "Code Surgery" analysis (April 2025) documents the fragility of diff application across Codex, Aider, OpenHands, RooCode, and Cursor — every system implements elaborate recovery logic specifically because diffs break. Full file replacement eliminates this entire class of problems from the Coordinator.
@@ -426,30 +426,30 @@ The Instrumentation Agent outputs a **complete file replacement** — the entire
 The Instrumentation Agent's system prompt follows a specific structure optimized for Claude's instruction-following behavior. Anthropic's Claude 4.x best practices documentation states these models "have been trained for more precise instruction following than previous generations" and "pay close attention to details and examples."
 
 **Prompt sections (in order):**
-1. **Role and constraints** — Defines the agent as a TypeScript instrumentation engineer implementing a Weaver schema contract. Includes explicit prohibitions as output format specifications (see Claude 4.x Prompt Hygiene below).
+1. **Role and constraints** — Defines the agent as a JavaScript instrumentation engineer implementing a Weaver schema contract. Includes explicit prohibitions as output format specifications (see Claude 4.x Prompt Hygiene below).
 2. **Schema contract** — The full resolved Weaver schema. This is the source of truth for span names, attributes, and semantic conventions.
 3. **Transformation rules** — Enumerated rules for the OTel instrumentation pattern: `tracer.startActiveSpan()` wrapping, try/catch/finally with `span.end()` in finally, `span.recordException()` + `setStatus()` on errors.
-4. **3-5 diverse examples** — Concrete TypeScript before/after pairs demonstrating the transformation pattern. Per Anthropic's multishot prompting guidance: "Include 3-5 diverse, relevant examples. More examples = better performance, especially for complex tasks." Examples should cover:
+4. **3-5 diverse examples** — Concrete JavaScript before/after pairs demonstrating the transformation pattern. Per Anthropic's multishot prompting guidance: "Include 3-5 diverse, relevant examples. More examples = better performance, especially for complex tasks." Examples should cover:
    - A basic function instrumentation (happy path)
    - An async function with existing try/catch
    - A function that should be **skipped** (already instrumented)
    - A function with variable names that would shadow `span`/`tracer`
    - (Optional) A file where the agent records a library need instead of adding manual spans
 5. **Source file** — The complete file to instrument.
-6. **Output format specification** — "Return ONLY the complete instrumented TypeScript file. No markdown fences, no explanations, no partial output. Files containing placeholder comments (`// ...`, `// existing code`, `// rest of function`) will be rejected by validation."
+6. **Output format specification** — "Return ONLY the complete instrumented JavaScript file. No markdown fences, no explanations, no partial output. Files containing placeholder comments (`// ...`, `// existing code`, `// rest of function`) will be rejected by validation."
 7. **Trace context** — Trace ID + parent span ID (operational metadata).
 
 **Claude 4.x Prompt Hygiene:**
 
 Anthropic's Claude 4.x best practices document several behaviors that directly affect the agent's system prompt design:
 
-- **Remove anti-laziness directives.** Instructions like "be thorough," "write COMPLETE code," or "do not be lazy" were workarounds for earlier models. On Claude 4.6, these "amplify the model's already-proactive behavior and can cause runaway thinking or write-then-rewrite loops." Instead, frame output completeness as a **format specification**: "Output format: complete TypeScript source file. Files containing placeholder comments will fail validation." This is a technical constraint, not a motivational nudge.
+- **Remove anti-laziness directives.** Instructions like "be thorough," "write COMPLETE code," or "do not be lazy" were workarounds for earlier models. On Claude 4.6, these "amplify the model's already-proactive behavior and can cause runaway thinking or write-then-rewrite loops." Instead, frame output completeness as a **format specification**: "Output format: complete JavaScript source file. Files containing placeholder comments will fail validation." This is a technical constraint, not a motivational nudge.
 - **Use the `effort` API parameter** as the primary control lever for thinking depth, rather than prompt-based workarounds. The `agentEffort` config field (default: `medium`) controls this. For Claude 4.6 models, the Coordinator passes `thinking: {type: "adaptive"}` alongside the effort parameter; for pre-4.6 models, use `thinking: {type: "enabled", budget_tokens: N}` instead.
 - **Do not include chain-of-thought or thoroughness instructions** for the transformation itself. On Claude 4.6, these are unnecessary and can trigger runaway thinking or rewrite loops. The transformation rules are specific enough for direct output.
 - **Soften tool-use language** if MCP tools are exposed to the agent. Replace "You MUST use [tool]" with "Use [tool] when it would enhance your understanding." Claude 4.x models are more responsive to system prompts and may overtrigger on aggressive language.
 - **Guard against overengineering.** Claude 4.6 tends to create extra files and unnecessary abstractions. The system prompt should clearly state: "Your ONLY job is to add instrumentation. Do not refactor, rename, or restructure existing code."
 
-**What does benefit from reasoning:** The agent's *analysis* of which functions to instrument and which to skip benefits from internal reasoning. This should surface through the structured result fields (`notes`, `span_categories`) rather than chain-of-thought in the generated code.
+**What does benefit from reasoning:** The agent's *analysis* of which functions to instrument and which to skip benefits from internal reasoning. This should surface through the structured result fields (`notes`, `spanCategories`) rather than chain-of-thought in the generated code.
 
 ### Known Failure Modes
 
@@ -503,7 +503,7 @@ If a checkpoint fails, the Coordinator stops processing new files by default. Fi
 
 ### SDK Init File Parsing Scope
 
-The Coordinator supports SDK init files using the `NodeSDK` constructor pattern with an `instrumentations` array literal. It uses ts-morph to find the array, append new entries, and add corresponding import statements. If the SDK init file doesn't match a recognized pattern (e.g., instrumentations are constructed dynamically, spread from another file, or use `registerInstrumentations()`), the Coordinator writes a separate file (e.g., `telemetry-agent-instrumentations.ts`) exporting the new instrumentation instances, logs a warning with instructions for the user to integrate manually, and notes this in the PR summary. This keeps the Coordinator deterministic without requiring it to understand arbitrary SDK initialization patterns.
+The Coordinator supports SDK init files using the `NodeSDK` constructor pattern with an `instrumentations` array literal. It uses ts-morph to find the array, append new entries, and add corresponding import statements. If the SDK init file doesn't match a recognized pattern (e.g., instrumentations are constructed dynamically, spread from another file, or use `registerInstrumentations()`), the Coordinator writes a separate file (e.g., `telemetry-agent-instrumentations.js`) exporting the new instrumentation instances, logs a warning with instructions for the user to integrate manually, and notes this in the PR summary. This keeps the Coordinator deterministic without requiring it to understand arbitrary SDK initialization patterns.
 
 ### Future: Parallel Processing
 
@@ -522,7 +522,7 @@ The agent follows a priority hierarchy when deciding what to instrument. Each fu
 3. **Service-layer entry points** — Exported async functions in service/handler directories not already covered by tiers 1 or 2.
 4. **Everything else is skipped** — Utilities, formatters, pure helpers, synchronous internals. The agent does not instrument these. As a concrete heuristic: functions under ~5 lines, pure synchronous functions, type guards, and simple data transformations should never be instrumented regardless of where they live in the codebase.
 
-The agent should be able to articulate which tier each instrumented function falls into. This categorization is recorded in the result (see `span_categories` in Result Data).
+The agent should be able to articulate which tier each instrumented function falls into. This categorization is recorded in the result (see `spanCategories` in Result Data).
 
 **Ratio-based backstop:** If the agent finds itself wanting to add manual spans to more than ~20% of the functions in a file, this is a signal the file may need to be broken up or the agent is over-instrumenting. The agent should flag this in the result rather than proceeding.
 
@@ -580,7 +580,7 @@ export async function getUser(id) {
 **Step 2: Agent records library need in result**
 ```json
 {
-  "libraries_needed": [
+  "librariesNeeded": [
     {
       "package": "@opentelemetry/instrumentation-pg",
       "importName": "PgInstrumentation"
@@ -628,7 +628,7 @@ groups:
 
 **Key point:** The target file (`user-service.js`) is NOT modified. The library handles instrumentation automatically once registered.
 
-**Schema vs. Runtime Dependencies:** The schema entry (Step 4) and `libraries_needed` (Step 2) serve different purposes and both are required. The schema defines the telemetry contract — what spans will be emitted and what attributes they'll have. This enables Weaver live-check to validate that the running code produces what the schema says it should. The `libraries_needed` array tells the Coordinator which npm packages to install and which classes to import and register in the SDK init file — the agent provides both the package name and the import name so the Coordinator can write the SDK file deterministically. You can't have validation without the schema entry, and you can't have working instrumentation without the library installed. They're complementary, not redundant.
+**Schema vs. Runtime Dependencies:** The schema entry (Step 4) and `librariesNeeded` (Step 2) serve different purposes and both are required. The schema defines the telemetry contract — what spans will be emitted and what attributes they'll have. This enables Weaver live-check to validate that the running code produces what the schema says it should. The `librariesNeeded` array tells the Coordinator which npm packages to install and which classes to import and register in the SDK init file — the agent provides both the package name and the import name so the Coordinator can write the SDK file deterministically. You can't have validation without the schema entry, and you can't have working instrumentation without the library installed. They're complementary, not redundant.
 
 ### Path 2: Manual Span (Fallback for Business Logic)
 
@@ -724,7 +724,7 @@ The agent can extend the schema, but must follow existing patterns:
 
 3. **Add or create, but stay consistent** — Agent can add to existing groups or create new ones, but must observe and follow the conventions in the existing schema.
 
-4. **Coordinator enforces via drift detection** — The Coordinator sums `attributes_created` and `spans_added` across all results. Unreasonable totals (e.g., 30 new attributes for a single file) get flagged for human review. Additionally, `weaver registry diff` (with `--diff-format json`) classifies each schema change as `added`, `renamed`, `obsoleted`, `removed`, or `uncategorized`. (The `updated` change type is documented but not yet implemented in Weaver's diff engine.) The Coordinator rejects any change type other than `added` to enforce the "extend only" constraint programmatically — in practice, this means checking for `renamed`, `obsoleted`, `removed`, and `uncategorized`.
+4. **Coordinator enforces via drift detection** — The Coordinator sums `attributesCreated` and `spansAdded` across all results. Unreasonable totals (e.g., 30 new attributes for a single file) get flagged for human review. Additionally, `weaver registry diff` (with `--diff-format json`) classifies each schema change as `added`, `renamed`, `obsoleted`, `removed`, or `uncategorized`. (The `updated` change type is documented but not yet implemented in Weaver's diff engine.) The Coordinator rejects any change type other than `added` to enforce the "extend only" constraint programmatically — in practice, this means checking for `renamed`, `obsoleted`, `removed`, and `uncategorized`.
 
 ---
 
@@ -744,7 +744,7 @@ The agent can extend the schema, but must follow existing patterns:
 2. **Discovery** — if file uses a framework not in schema (e.g., `import express from 'express'`):
    - Check allowlist first, then query npm registry as fallback
    - If found and `autoApproveLibraries: true`:
-     - Record library in result's `libraries_needed`
+     - Record library in result's `librariesNeeded`
      - Add library's spans/attributes to Weaver schema (semconv references)
    - If found and `autoApproveLibraries: false` → prompt user
 
@@ -1105,20 +1105,20 @@ For debugging, the Coordinator can optionally write results to a gitignored dire
  * @typedef {Object} FileResult
  * @property {string} path
  * @property {"success" | "failed" | "skipped"} status - "skipped" for already-instrumented files
- * @property {number} spans_added
- * @property {LibraryRequirement[]} libraries_needed - Coordinator handles installation + SDK registration
- * @property {string[]} schema_extensions - IDs of new schema entries
- * @property {number} attributes_created
- * @property {number} validation_attempts - total attempts (1 = first try succeeded, 3 = all attempts used)
- * @property {"initial-generation" | "multi-turn-fix" | "fresh-regeneration"} validation_strategy_used - strategy of the last completed attempt (on success: which strategy resolved it; on failure: which strategy was last tried before giving up or hitting a budget/early-exit)
- * @property {string[]} [error_progression] - e.g., ["3 syntax errors", "1 lint error", "0 errors"] — shows convergence or oscillation
+ * @property {number} spansAdded
+ * @property {LibraryRequirement[]} librariesNeeded - Coordinator handles installation + SDK registration
+ * @property {string[]} schemaExtensions - IDs of new schema entries
+ * @property {number} attributesCreated
+ * @property {number} validationAttempts - total attempts (1 = first try succeeded, 3 = all attempts used)
+ * @property {"initial-generation" | "multi-turn-fix" | "fresh-regeneration"} validationStrategyUsed - strategy of the last completed attempt (on success: which strategy resolved it; on failure: which strategy was last tried before giving up or hitting a budget/early-exit)
+ * @property {string[]} [errorProgression] - e.g., ["3 syntax errors", "1 lint error", "0 errors"] — shows convergence or oscillation
  * @property {SpanCategories | null} [spanCategories] - not present on early failures
  * @property {string[]} [notes] - agent's judgment call explanations
  * @property {string} [schemaHashBefore] - hash of resolved schema before agent ran
  * @property {string} [schemaHashAfter] - hash of resolved schema after agent ran
  * @property {string} [agentVersion] - version of agent/prompt that produced this result
  * @property {string} [reason] - human-readable summary, e.g. "syntax errors after 3 attempts"
- * @property {string} [last_error] - raw error output for debugging, e.g. "Unexpected token at line 42"
+ * @property {string} [lastError] - raw error output for debugging, e.g. "Unexpected token at line 42"
  * @property {CheckResult[]} [advisoryAnnotations] - Tier 2 advisory findings for PR display
  * @property {TokenUsage} tokenUsage - Cumulative across all attempts
  */
@@ -1143,23 +1143,23 @@ Success example:
 {
   "path": "src/services/payment.js",
   "status": "success",
-  "spans_added": 3,
-  "libraries_needed": [
+  "spansAdded": 3,
+  "librariesNeeded": [
     {
       "package": "@opentelemetry/instrumentation-pg",
       "importName": "PgInstrumentation"
     }
   ],
-  "schema_extensions": ["span.commit_story.payment.process"],
-  "attributes_created": 2,
-  "validation_attempts": 2,
-  "validation_strategy_used": "multi-turn-fix",
-  "error_progression": ["1 lint error", "0 errors"],
-  "span_categories": {
-    "external_calls": 2,
-    "schema_defined": 1,
-    "service_entry_points": 0,
-    "total_functions_in_file": 12
+  "schemaExtensions": ["span.commit_story.payment.process"],
+  "attributesCreated": 2,
+  "validationAttempts": 2,
+  "validationStrategyUsed": "multi-turn-fix",
+  "errorProgression": ["1 lint error", "0 errors"],
+  "spanCategories": {
+    "externalCalls": 2,
+    "schemaDefined": 1,
+    "serviceEntryPoints": 0,
+    "totalFunctionsInFile": 12
   },
   "notes": ["skipped validateInput — pure sync utility under 5 lines"],
   "agentVersion": "v0.1"
@@ -1171,15 +1171,15 @@ Failure example:
 {
   "path": "src/services/crypto.js",
   "status": "failed",
-  "spans_added": 0,
-  "libraries_needed": [],
-  "schema_extensions": [],
-  "attributes_created": 0,
-  "validation_attempts": 3,
-  "validation_strategy_used": "fresh-regeneration",
-  "error_progression": ["2 syntax errors", "3 syntax errors", "1 syntax error"],
+  "spansAdded": 0,
+  "librariesNeeded": [],
+  "schemaExtensions": [],
+  "attributesCreated": 0,
+  "validationAttempts": 3,
+  "validationStrategyUsed": "fresh-regeneration",
+  "errorProgression": ["2 syntax errors", "3 syntax errors", "1 syntax error"],
   "reason": "syntax errors after 3 attempts",
-  "last_error": "Unexpected token at line 42"
+  "lastError": "Unexpected token at line 42"
 }
 ```
 
@@ -1242,7 +1242,7 @@ The config file is created during `telemetry-agent init` and serves as the gate 
 
 # Required
 schemaPath: ./telemetry/registry         # Path to Weaver registry directory
-sdkInitFile: ./src/telemetry/setup.ts    # OTel SDK initialization file (recorded during init)
+sdkInitFile: ./src/telemetry/setup.js    # OTel SDK initialization file (recorded during init)
 
 # Agent API configuration
 agentModel: claude-sonnet-4-6  # Model for Instrumentation Agent API calls (prompt hygiene guidance is written for 4.6 behavior)
@@ -1529,7 +1529,7 @@ Four levers:
 
 1. **Fresh instance per file** — Prevents laziness, each file gets full attention
 2. **Weaver validation chain** — Catches errors via static check and live-check
-3. **Schema drift detection** — Coordinator sums `attributes_created` and `spans_added` across results; periodic schema checkpoints catch drift early; schema hash tracking pinpoints which file introduced a breaking change
+3. **Schema drift detection** — Coordinator sums `attributesCreated` and `spansAdded` across results; periodic schema checkpoints catch drift early; schema hash tracking pinpoints which file introduced a breaking change
 4. **Priority hierarchy + review sensitivity** — The agent follows a strict instrumentation priority hierarchy (external calls → schema-defined → service entry points → skip everything else). The Coordinator annotates the PR summary based on the configured review sensitivity, flagging outliers for human review without gating the agent's output.
 
 ---
