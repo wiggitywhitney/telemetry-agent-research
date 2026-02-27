@@ -43,9 +43,9 @@ See [prds/done/2-run-and-evaluate.md](prds/done/2-run-and-evaluate.md).
 
 Analyzed the 25 findings into cross-cutting themes ([evaluation/patterns.md](evaluation/patterns.md)), then produced four documents: architectural recommendations (7 preserve, 3 change), tech stack evaluation (12 technology assessments with version-pinned recommendations), implementation phasing (7 phases with acceptance gates), and a design document (cross-phase interfaces, module organization, decision register).
 
-Fed findings back into the spec across four edits: v3.6 (evaluation criteria, JS target), v3.7 (JSDoc notation, interface additions), and v3.8 (tech stack expansion, SDK capabilities, evaluation refinements). 19 PRD #3 decisions documented in the decision log.
+Fed findings back into the spec across three version bumps: v3.6 (evaluation criteria, JS target), v3.7 (JSDoc notation, interface additions), and v3.8 (tech stack expansion, SDK capabilities, evaluation refinements). 19 PRD #3 decisions documented in the decision log.
 
-See [prds/3-spec-synthesis.md](prds/3-spec-synthesis.md).
+See [prds/done/3-spec-synthesis.md](prds/done/3-spec-synthesis.md).
 
 ## Repository Structure
 
@@ -83,8 +83,9 @@ telemetry-agent-research/
 ├── prds/
 │   ├── done/                                # Completed PRDs
 │   │   ├── 1-evaluation-rubric.md
-│   │   └── 2-run-and-evaluate.md
-│   └── 3-spec-synthesis.md                  # Current PRD (this work)
+│   │   ├── 2-run-and-evaluate.md
+│   │   └── 3-spec-synthesis.md
+│   └── 7-implementation-repo-setup.md       # Next PRD
 └── journal/
     └── entries/2026-02/                     # Daily development journal
         ├── 2026-02-24.md

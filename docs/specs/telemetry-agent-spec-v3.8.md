@@ -1639,7 +1639,7 @@ Four levers:
 - Backend verification (query observability platform)
 - Configurable instrumentation levels (dev-heavy vs production-selective — `instrumentationMode` config key reserved)
 - Parallel agent execution (architecture supports it; needs schema merge strategy)
-- Tighter cost ceilings (file-size-proportional ceilings that account for system prompt and schema overhead, more accurate than the current `fileCount × maxTokensPerFile` worst case)
+- Tighter cost ceilings (historical ceiling-vs-actual ratios to improve per-file estimates beyond the current `countTokens()`-based ceiling)
 - Token usage estimation (heuristic-based estimates derived from historical ceiling-vs-actual data across runs, replacing conservative ceilings with realistic predictions)
 
 ---
