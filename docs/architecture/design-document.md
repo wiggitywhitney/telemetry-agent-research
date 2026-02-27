@@ -480,4 +480,4 @@ Items identified during design that are out of M7 scope:
 
 1. **`prd-phase` skill update** — Add a Step 3e that routes each phase to its relevant modules from the Module Organization section. Phase 1 → `config/`, `agent/`, `ast/`. Phase 2 → `validation/`. Etc.
 2. **Milestone 8 (v3.8 spec edit)** — Batch application of all already-known spec changes: 13 tech stack checklist items, prose TypeScript→JavaScript references, recommendations-derived changes (validator feedback format, FileResult population requirement), rubric-scores items (independently runnable gates, RST-004 I/O exemption), patterns.md item (auto-instrumentation interaction model). Blocked by M7. Uses Decision 11 discipline. Each item is either applied or explicitly deferred with rationale.
-3. **Cluster Whisperer as secondary validation target** — Deferred from tech stack eval. Needs verification that a matching Weaver schema exists.
+3. **Cluster Whisperer as secondary validation target** — Not applicable for PoC. Cluster Whisperer is a TypeScript codebase; the agent instruments JavaScript only (resolved in PRD #3).
