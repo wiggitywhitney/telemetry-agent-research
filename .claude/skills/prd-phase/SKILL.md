@@ -50,28 +50,28 @@ The phase definition contains a "Spec Sections" table. For each row:
 
 **Note**: The spec was renamed from v3.5.md → v3.6.md → v3.7.md → v3.8.md as content versions evolved.
 
-**Spec section landmarks** (line numbers for the 1,634-line spec):
+**Spec section landmarks** (line numbers for the 1,796-line spec):
 
 | Section | Line | Key Subsections |
 |---------|------|-----------------|
-| Architecture | 52 | Coordinator+Agents 54, Coordinator API 93, Error Handling 123, Interfaces 154, Tech Stack 181, Weaver Integration 200 |
-| Init Phase (Required) | 237 | What Init Does 241, Prerequisites 271 |
-| Complete Workflow | 281 | (diagram through ~343) |
-| How It Works | 344 | Input 346, Processing (per file) 351, Output 367, Agent Output Format 371, System Prompt Structure 385, Known Failure Modes 415, Elision Detection 431 |
-| File/Directory Processing | 441 | File Revert Protocol 453, Periodic Schema Checkpoints 459 |
-| What Gets Instrumented | 475 | Priority Hierarchy 477, Review Sensitivity 490, Patterns Not Covered 507 |
-| What the Agent Actually Does to Code | 520 | Path 1: Auto-Instrumentation 524, Path 2: Manual Span 594, Decision: Which Path? 658 |
-| Attribute Priority Chain | 668 | Schema Extension Guardrails 678 |
-| Auto-Instrumentation Libraries | 692 | Why Libraries First 696, Detection Flow 702, Library Discovery 712 |
-| Validation Chain | 812 | Per-File Validation (with fix loop) 816, End-of-Run Validation 872 |
-| Agent Self-Instrumentation | 902 | |
-| Handling Existing Instrumentation | 968 | |
-| Schema as Source of Truth | 986 | |
-| Result Data | 995 | Result Structure 1005, PR Summary 1091, Schema Hash Tracking 1105 |
-| Configuration | 1111 | What Goes Where 1162, Dependency Strategy 1202, Cost Visibility 1217 |
-| Minimum Viable Schema Example | 1231 | |
-| PoC Scope | 1427 | In Scope 1429, Out of Scope 1476 |
-| Evaluation & Acceptance Criteria | 1492 | Two-Tier Validation Architecture 1521, Required Verification Levels 1555 |
+| Architecture | 54 | Coordinator+Agents 56, Coordinator API 131, Error Handling 163, Interfaces 196, Tech Stack 223, Weaver Integration 256 |
+| Init Phase (Required) | 293 | What Init Does 297, Prerequisites 327 |
+| Complete Workflow | 337 | (diagram through ~400) |
+| How It Works | 400 | Input 402, Processing (per file) 407, Output 423, Agent Output Format 427, System Prompt Structure 441, Known Failure Modes 471, Elision Detection 487 |
+| File/Directory Processing | 497 | File Revert Protocol 509, Periodic Schema Checkpoints 515 |
+| What Gets Instrumented | 531 | Priority Hierarchy 533, Review Sensitivity 546, Patterns Not Covered 563 |
+| What the Agent Actually Does to Code | 576 | Path 1: Auto-Instrumentation 580, Path 2: Manual Span 650, Decision: Which Path? 714 |
+| Attribute Priority Chain | 724 | Schema Extension Guardrails 734 |
+| Auto-Instrumentation Libraries | 748 | Why Libraries First 752, Detection Flow 758, Library Discovery 777 |
+| Validation Chain | 877 | Per-File Validation (with fix loop) 881, End-of-Run Validation 987 |
+| Agent Self-Instrumentation | 1024 | |
+| Handling Existing Instrumentation | 1083 | |
+| Schema as Source of Truth | 1101 | |
+| Result Data | 1110 | Result Structure 1120, PR Summary 1246, Schema Hash Tracking 1260 |
+| Configuration | 1266 | What Goes Where 1317, Dependency Strategy 1357, Cost Visibility 1372 |
+| Minimum Viable Schema Example | 1386 | |
+| PoC Scope | 1582 | In Scope 1584, Out of Scope 1631 |
+| Evaluation & Acceptance Criteria | 1647 | Two-Tier Validation Architecture 1681, Required Verification Levels 1715 |
 
 #### 3b. Tech Stack Sections
 

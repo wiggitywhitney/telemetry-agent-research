@@ -306,7 +306,7 @@ Supports stdio and Streamable HTTP transports.
 
 ### Recommendation
 
-**Confirm: @modelcontextprotocol/sdk v1.x.** Pin to `^1.27` and do not adopt v2 pre-alpha. The zod peer dependency aligns with the spec's existing zod usage for config validation.
+**Confirm: @modelcontextprotocol/sdk v1.x.** Use `^1.27` (matching >=1.27.0 to <2.0.0) and do not adopt v2 pre-alpha. The zod peer dependency aligns with the spec's existing zod usage for config validation.
 
 ---
 

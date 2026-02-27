@@ -21,7 +21,7 @@ Key outputs:
 
 Instrumentation quality is tribal knowledge — the industry hasn't codified it. This phase surveyed OpenTelemetry community standards, observability vendor best practices, academic literature, and practitioner experience to build a formal rubric.
 
-The rubric defines 30 rules across three layers: gate checks (binary must-pass preconditions), dimension profiles (per-dimension pass rates across 6 quality dimensions), and per-file detail. Each rule carries an impact level (Critical/Important/Normal/Low) and distinguishes automatable checks from human-judgment checks. A companion mapping document applies the rubric to commit-story-v2 specifically, inventorying 50 exported functions, 15 error handling sites, and the expected span tree.
+The rubric defines 30 rules across three layers: gate checks (binary must-pass preconditions), dimension profiles (per-dimension pass rates across 6 quality dimensions), and per-file detail. Each rule carries an impact level (Critical/Important/Normal/Low) and distinguishes automatable checks from human-judgment checks. A companion mapping document applies the rubric to commit-story-v2 specifically, inventorying 50 exported functions, 15 error-handling sites, and the expected span tree.
 
 See [prds/done/1-evaluation-rubric.md](prds/done/1-evaluation-rubric.md).
 

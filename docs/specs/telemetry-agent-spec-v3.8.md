@@ -141,7 +141,7 @@ The Coordinator accepts an optional `callbacks` object for progress reporting:
  * @typedef {Object} CostCeiling
  * @property {number} fileCount
  * @property {number} totalFileSizeBytes
- * @property {number} maxTokensCeiling - fileCount * maxTokensPerFile (theoretical worst case)
+ * @property {number} maxTokensCeiling - Sum of per-file countTokens() estimates × attempt ceiling (see Cost Visibility section)
  */
 
 /**

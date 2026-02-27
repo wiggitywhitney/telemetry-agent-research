@@ -1,7 +1,7 @@
 # Design Document: Telemetry Agent Implementation
 
 **Research Date:** 2026-02-26
-**Source:** Spec v3.7, architectural recommendations, tech stack evaluation, implementation phasing, PRD #2 evaluation findings
+**Source:** Spec v3.8, architectural recommendations, tech stack evaluation, implementation phasing, PRD #2 evaluation findings
 **Purpose:** Blueprint for the next implementation — fills the gaps between existing documents so a builder can start from this
 
 ---

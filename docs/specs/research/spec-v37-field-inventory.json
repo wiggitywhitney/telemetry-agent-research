@@ -156,7 +156,7 @@
   },
   "summary": {
     "total_interfaces": 11,
-    "unchanged_from_v36": 4,
+    "unchanged_from_v36": 3,
     "new_in_v37": 7,
     "evolved_in_v37": 1,
     "new_types": ["InstrumentationOutput", "SpanCategories", "TokenUsage", "CheckResult", "ValidationResult", "ValidateFileInput", "RunResult"],
