@@ -18,7 +18,7 @@ Update the prd-phase skill in the research repo (where the source of truth lives
 ## Scope
 
 **In scope:**
-- Updating prd-phase skill in this research repo (spec filename, landmarks table, Step 3e, Source Documents table)
+- Updating prd-phase skill in this research repo (spec filename, landmarks table, Step 3e, Source Documents table, Step 2b for previous-phase PRD read, milestone-to-rubric guidance)
 - Creating a public GitHub repo with package.json (`"type": "module"`), .gitignore, LICENSE
 - Copying 7 skill-routed documents, rubric-codebase-mapping, and prd-phase skill directory to correct paths
 - Configuring vals (ANTHROPIC_API_KEY, GITHUB_TOKEN only), CodeRabbit MCP server, commit-story-v2 journal hook
@@ -85,10 +85,12 @@ All updates happen in the research repo before copying:
    - Phase 7: RunResult consumption for git/PR, advisoryAnnotations flow
 4. **Source Documents table**: Add row for design-document.md.
 5. **Phase-to-module mapping**: Reference the design document's Phase-to-Module Mapping table (either in Step 3e or Step 4).
+6. **Step 2b — Previous Phase PRD Read** (Phase 2+ only): Before generating a new phase PRD, read the previous phase's PRD — specifically the decision log and any noted interface changes. The design document defines planned contracts, but implementation decisions may have changed them. Extract deviations and include them in the new PRD's Dependencies section as "Phase N-1 delivered X (with these modifications from plan: ...)". Phase 1 has no predecessor, so this step is skipped.
+7. **Milestone-to-rubric guidance**: In the milestone guidance (Step 4 or template), add: "Where a milestone directly satisfies a rubric rule, note the rule ID. Not every milestone maps to a rubric rule — Phase 1 milestones about prompt engineering and file I/O have no clean rubric connection, and stretching for one adds noise. Phase 2 (validation chain) maps naturally (e.g., 'Tier 1 syntax check works' → NDS-001, 'Tier 2 CDQ-001 works' → CDQ-001). Include the mapping where it's real; omit it where it isn't."
 
 ## Milestones
 
-- [ ] **M1: prd-phase skill updated in research repo**: Spec filename → v3.8, landmarks table rebuilt against v3.8 spec, Step 3e added for design document routing, Source Documents table updated, phase-to-module mapping referenced. Committed to `feature/prd-3-spec-synthesis` branch. *No blockers (PRD #3 M8 complete).*
+- [ ] **M1: prd-phase skill updated in research repo**: Spec filename → v3.8, landmarks table rebuilt against v3.8 spec, Step 3e added for design document routing, Source Documents table updated, phase-to-module mapping referenced, Step 2b added for previous-phase PRD decision log read (Phase 2+), milestone guidance updated with rubric-rule mapping where natural (not forced). Committed to `feature/prd-3-spec-synthesis` branch. *No blockers (PRD #3 M8 complete).*
 - [ ] **M2: Public repo created with project foundation**: GitHub repo created (name decided with human approval — see Open Questions), initialized with package.json (`"type": "module"`, `"engines": { "node": ">=24.0.0" }`), .gitignore (node_modules/, journal/, .env, *.local), LICENSE. commit-story-v2 installed as devDependency, journal hook initialized. *No blockers — can run in parallel with M1.*
 - [ ] **M3: Research artifacts copied to correct paths**: All 7 skill-routed documents, rubric-codebase-mapping, and prd-phase skill directory copied to the paths specified in the Document Inventory tables above. After copying, spot-check the landmarks table against the copied spec: open the spec, confirm 3-5 section headings (Architecture, Technology Stack, Interface Contracts, Evaluation Criteria, Revision History) appear at the line numbers the landmarks table claims. This catches line-number drift before M6. *Blocked by M1 (needs updated skill) and M2 (needs the repo to exist).*
 - [ ] **M4: Developer tooling configured**: `.vals.yaml` with ANTHROPIC_API_KEY and GITHUB_TOKEN (Google Secret Manager refs). `.claude/settings.local.json` with CodeRabbit MCP server enabled. commit-story journal hook verified working (make a test commit, confirm journal entry appears in `journal/entries/`). *Blocked by M2.*
