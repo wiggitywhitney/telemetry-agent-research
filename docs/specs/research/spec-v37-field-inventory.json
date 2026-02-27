@@ -1,0 +1,165 @@
+{
+  "description": "Field inventory after Pass 2 (substantive interface additions). Spec version is now v3.7.",
+  "spec_version": "v3.7",
+  "inventory_timestamp": "2026-02-26T00:02:00Z",
+  "interfaces": {
+    "InstrumentationOutput": {
+      "location": "line ~103",
+      "status": "NEW",
+      "fields": [
+        "instrumentedCode: string",
+        "librariesNeeded: LibraryRequirement[]",
+        "schemaExtensions: string[]",
+        "attributesCreated: number",
+        "spanCategories: SpanCategories | null",
+        "notes: string[]",
+        "tokenUsage: TokenUsage"
+      ]
+    },
+    "SpanCategories": {
+      "location": "line ~114",
+      "status": "NEW",
+      "fields": [
+        "externalCalls: number",
+        "schemaDefined: number",
+        "serviceEntryPoints: number",
+        "totalFunctionsInFile: number"
+      ]
+    },
+    "TokenUsage": {
+      "location": "line ~122",
+      "status": "NEW",
+      "fields": [
+        "inputTokens: number",
+        "outputTokens: number",
+        "cacheCreationInputTokens: number",
+        "cacheReadInputTokens: number"
+      ]
+    },
+    "CostCeiling": {
+      "location": "line ~140",
+      "status": "UNCHANGED from v3.6",
+      "fields": [
+        "fileCount: number",
+        "totalFileSizeBytes: number",
+        "maxTokensCeiling: number"
+      ]
+    },
+    "CoordinatorCallbacks": {
+      "location": "line ~147",
+      "status": "UNCHANGED from v3.6",
+      "fields": [
+        "onCostCeilingReady?: (ceiling: CostCeiling) => boolean | void",
+        "onFileStart?: (path: string, index: number, total: number) => void",
+        "onFileComplete?: (result: FileResult, index: number, total: number) => void",
+        "onSchemaCheckpoint?: (filesProcessed: number, passed: boolean) => boolean | void",
+        "onValidationStart?: () => void",
+        "onValidationComplete?: (passed: boolean, complianceReport: string) => void",
+        "onRunComplete?: (results: FileResult[]) => void"
+      ]
+    },
+    "CheckResult": {
+      "location": "line ~919",
+      "status": "NEW",
+      "fields": [
+        "ruleId: string",
+        "passed: boolean",
+        "filePath: string",
+        "lineNumber: number | null",
+        "message: string",
+        "tier: 1 | 2",
+        "blocking: boolean"
+      ]
+    },
+    "ValidationResult": {
+      "location": "line ~937",
+      "status": "NEW",
+      "fields": [
+        "passed: boolean",
+        "tier1Results: CheckResult[]",
+        "tier2Results: CheckResult[]",
+        "blockingFailures: CheckResult[]",
+        "advisoryFindings: CheckResult[]"
+      ]
+    },
+    "ValidateFileInput": {
+      "location": "line ~950",
+      "status": "NEW",
+      "fields": [
+        "originalCode: string",
+        "instrumentedCode: string",
+        "filePath: string",
+        "resolvedSchema: Object",
+        "config: Object"
+      ]
+    },
+    "LibraryRequirement": {
+      "location": "line ~1096",
+      "status": "UNCHANGED from v3.6",
+      "fields": [
+        "package: string",
+        "importName: string"
+      ]
+    },
+    "FileResult": {
+      "location": "line ~1105",
+      "status": "EVOLVED from v3.6",
+      "changes": [
+        "status: added \"skipped\" to union (was \"success\" | \"failed\")",
+        "All snake_case fields renamed to camelCase (breaking change from v3.6)",
+        "spanCategories: changed to SpanCategories | null reference (was inline Object with snake_case sub-fields)",
+        "advisoryAnnotations: NEW field (CheckResult[])",
+        "tokenUsage: NEW field (TokenUsage)"
+      ],
+      "fields": [
+        "path: string",
+        "status: \"success\" | \"failed\" | \"skipped\"",
+        "spansAdded: number",
+        "librariesNeeded: LibraryRequirement[]",
+        "schemaExtensions: string[]",
+        "attributesCreated: number",
+        "validationAttempts: number",
+        "validationStrategyUsed: \"initial-generation\" | \"multi-turn-fix\" | \"fresh-regeneration\"",
+        "errorProgression?: string[]",
+        "spanCategories?: SpanCategories | null",
+        "notes?: string[]",
+        "schemaHashBefore?: string",
+        "schemaHashAfter?: string",
+        "agentVersion?: string",
+        "reason?: string",
+        "lastError?: string",
+        "advisoryAnnotations?: CheckResult[]",
+        "tokenUsage: TokenUsage"
+      ]
+    },
+    "RunResult": {
+      "location": "line ~1195",
+      "status": "NEW",
+      "fields": [
+        "fileResults: FileResult[]",
+        "costCeiling: CostCeiling",
+        "actualTokenUsage: TokenUsage",
+        "filesProcessed: number",
+        "filesSucceeded: number",
+        "filesFailed: number",
+        "filesSkipped: number",
+        "librariesInstalled: string[]",
+        "libraryInstallFailures: string[]",
+        "sdkInitUpdated: boolean",
+        "schemaDiff?: string",
+        "schemaHashStart?: string",
+        "schemaHashEnd?: string",
+        "endOfRunValidation?: string",
+        "warnings: string[]"
+      ]
+    }
+  },
+  "summary": {
+    "total_interfaces": 11,
+    "unchanged_from_v36": 3,
+    "new_in_v37": 7,
+    "evolved_in_v37": 1,
+    "new_types": ["InstrumentationOutput", "SpanCategories", "TokenUsage", "CheckResult", "ValidationResult", "ValidateFileInput", "RunResult"],
+    "evolved_types": ["FileResult"]
+  }
+}

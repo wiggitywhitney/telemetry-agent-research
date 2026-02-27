@@ -133,7 +133,7 @@ Runtime evaluation scope caveats: RES-002 requires multi-instance comparison. RE
 
 ---
 
-## Part 2: Code-Level Evaluation (30 Rules)
+## Part 2: Code-Level Evaluation (31 Rules)
 
 These rules evaluate the **source code** produced by an AI instrumentation agent. Unlike the Instrumentation Score (which monitors runtime OTLP streams), code-level evaluation assesses a point-in-time code diff with the goal of iterating on the agent.
 
@@ -321,7 +321,7 @@ The following rules are binary preconditions. If any gate fails, quality scoring
 | **Scope** | Per-instance |
 | **Impact** | Normal |
 | **Classification** | Automatable |
-| **Mechanism** | AST: flag spans on unexported functions and private class methods. Exported = public API (instrumentation reasonable), unexported = internal. |
+| **Mechanism** | AST: flag spans on unexported functions and private class methods. Exported = public API (instrumentation reasonable), unexported = internal. **Exception**: unexported functions that perform I/O or external calls — subprocess execution (`child_process` methods, `exec`, `spawn`), network requests (`fetch`, HTTP client calls), database queries (database client method calls), or file system operations (`fs.*` async methods) — are exempt. The observability value of an I/O boundary outweighs the "internal implementation detail" concern. |
 
 #### RST-005: No Re-Instrumentation of Already-Instrumented Code
 
@@ -481,7 +481,17 @@ The following rules are binary preconditions. If any gate fails, quality scoring
 | **Scope** | Per-instance |
 | **Impact** | Important |
 | **Classification** | Automatable |
-| **Mechanism** | AST: flag `setAttribute` calls where the value is a full object spread, `JSON.stringify` of a request/response object, or an array without bounded length. Flag attribute keys matching known PII field patterns (`email`, `password`, `ssn`, `phone`, `creditCard`, `address`, `*_name` for person names). |
+| **Mechanism** | AST: flag `setAttribute` calls where the value is a full object spread, `JSON.stringify` of a request/response object, or an array without bounded length. Flag attribute keys matching known PII field patterns (`email`, `password`, `ssn`, `phone`, `creditCard`, `address`, `*_name` for person names). Also flag unconditional `setAttribute` calls where the value argument is sourced from an optional parameter, nullable field, or unvalidated input without a preceding defined-value guard (e.g., `if (value !== undefined)`). Setting attributes to `undefined` pollutes telemetry data; conditional setting is the expected pattern. |
+
+#### CDQ-008: Consistent Tracer Naming Convention
+
+| | |
+|---|---|
+| **Scope** | Per-run |
+| **Impact** | Normal |
+| **Classification** | Automatable |
+| **Mechanism** | AST: collect all `trace.getTracer()` name arguments across the codebase. Classify each name into a pattern category — dotted path (`project.module.component`), module name (`inference`), project name (`commit-story`), file name (`kubectl-get`), or other. Flag if more than one naming pattern is detected across files. The specific convention does not matter; consistency does. A single outlier in an otherwise consistent codebase is flagged at the outlier site, not run-wide. |
+| **Rationale** | CDQ-002 verifies a tracer name argument exists but not that names follow a consistent convention. Inconsistent tracer names fragment trace analysis — filtering, grouping, and service maps become unreliable when the same codebase uses multiple naming patterns. Discovered during PRD #2 evaluation: the agent used 4 different naming conventions across 4 files. |
 
 ---
 
@@ -496,21 +506,21 @@ The following rules are binary preconditions. If any gate fails, quality scoring
 | Restraint | RST | — | 5 | 5 |
 | API-Only Dependency | API | 1 | 3 | 4 |
 | Schema Fidelity | SCH | — | 4 | 4 |
-| Code Quality | CDQ | — | 6 | 6 |
-| **Total** | | **4** | **26** | **30** |
+| Code Quality | CDQ | — | 7 | 7 |
+| **Total** | | **4** | **27** | **31** |
 
 ### Automation Classification
 
 | Classification | Count | Rules |
 |---|---|---|
-| Automatable | 28 | NDS-001 through NDS-004, API-001, COV-001 through COV-006, RST-001 through RST-005, API-002 through API-004, SCH-001 through SCH-003, CDQ-001, CDQ-002, CDQ-003, CDQ-005, CDQ-006, CDQ-007 |
+| Automatable | 29 | NDS-001 through NDS-004, API-001, COV-001 through COV-006, RST-001 through RST-005, API-002 through API-004, SCH-001 through SCH-003, CDQ-001, CDQ-002, CDQ-003, CDQ-005, CDQ-006, CDQ-007, CDQ-008 |
 | Semi-automatable | 2 | NDS-005, SCH-004 |
 
-**93% automatable (28/30), 7% semi-automatable (2/30), 0% human-only.**
+**94% automatable (29/31), 6% semi-automatable (2/31), 0% human-only.**
 
-The two semi-automatable rules share a common trait: both involve semantic equivalence that structural/syntactic analysis cannot definitively resolve. Both are strong candidates for LLM-as-judge evaluation — a script + LLM judge pipeline could bring the effective automation rate to 30/30, fully automatable with no specialized human knowledge required.
+The two semi-automatable rules share a common trait: both involve semantic equivalence that structural/syntactic analysis cannot definitively resolve. Both are strong candidates for LLM-as-judge evaluation — a script + LLM judge pipeline could bring the effective automation rate to 31/31, fully automatable with no specialized human knowledge required.
 
-The 28 automatable rules succeed because their definitions can be operationalized into deterministic checks: framework-specific patterns are enumerable from `package.json`, export keywords make public/internal unambiguous, the telemetry registry encodes domain knowledge, and field-name pattern lists enable over-flagging where the cost of a false positive is far lower than the cost of manual review on every agent iteration.
+The 29 automatable rules succeed because their definitions can be operationalized into deterministic checks: framework-specific patterns are enumerable from `package.json`, export keywords make public/internal unambiguous, the telemetry registry encodes domain knowledge, and field-name pattern lists enable over-flagging where the cost of a false positive is far lower than the cost of manual review on every agent iteration.
 
 ---
 

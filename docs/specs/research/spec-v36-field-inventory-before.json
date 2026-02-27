@@ -1,0 +1,80 @@
+{
+  "description": "Field inventory before Pass 1 (TS→JSDoc notation conversion). Every interface and field must be identical after conversion — only syntax changes, zero semantic changes.",
+  "spec_version": "v3.6",
+  "inventory_timestamp": "2026-02-26T00:00:00Z",
+  "interfaces": {
+    "CostCeiling": {
+      "location": "line 101-106",
+      "fields": [
+        "fileCount: number",
+        "totalFileSizeBytes: number",
+        "maxTokensCeiling: number"
+      ]
+    },
+    "CoordinatorCallbacks": {
+      "location": "line 108-116",
+      "fields": [
+        "onCostCeilingReady?: (ceiling: CostCeiling) => boolean | void",
+        "onFileStart?: (path: string, index: number, total: number) => void",
+        "onFileComplete?: (result: FileResult, index: number, total: number) => void",
+        "onSchemaCheckpoint?: (filesProcessed: number, passed: boolean) => boolean | void",
+        "onValidationStart?: () => void",
+        "onValidationComplete?: (passed: boolean, complianceReport: string) => void",
+        "onRunComplete?: (results: FileResult[]) => void"
+      ]
+    },
+    "LibraryRequirement": {
+      "location": "line 1008-1011",
+      "fields": [
+        "package: string",
+        "importName: string"
+      ]
+    },
+    "FileResult": {
+      "location": "line 1013-1035",
+      "fields": [
+        "path: string",
+        "status: \"success\" | \"failed\"",
+        "spans_added: number",
+        "libraries_needed: LibraryRequirement[]",
+        "schema_extensions: string[]",
+        "attributes_created: number",
+        "validation_attempts: number",
+        "validation_strategy_used: \"initial-generation\" | \"multi-turn-fix\" | \"fresh-regeneration\"",
+        "error_progression?: string[]",
+        "span_categories?: { external_calls, schema_defined, service_entry_points, total_functions_in_file }",
+        "notes?: string[]",
+        "schemaHashBefore?: string",
+        "schemaHashAfter?: string",
+        "agentVersion?: string",
+        "reason?: string",
+        "last_error?: string"
+      ]
+    }
+  },
+  "code_examples": {
+    "path1_step1": {
+      "location": "line 531-539",
+      "language_tag": "typescript",
+      "description": "Agent detects import in target file (user-service.ts)"
+    },
+    "path1_step3": {
+      "location": "line 556-568",
+      "language_tag": "typescript",
+      "description": "Coordinator writes SDK init file (setup.ts)"
+    },
+    "path2_before": {
+      "location": "line 601-609",
+      "language_tag": "typescript",
+      "description": "Manual span — before instrumentation (summary.ts)"
+    },
+    "path2_after": {
+      "location": "line 612-638",
+      "language_tag": "typescript",
+      "description": "Manual span — after instrumentation (summary.ts)"
+    }
+  },
+  "total_interfaces": 4,
+  "total_fields": 28,
+  "total_code_examples": 4
+}
