@@ -1,7 +1,7 @@
 # PRD #7: Implementation Repo Setup
 
 **Issue**: [#7](https://github.com/wiggitywhitney/telemetry-agent-research/issues/7)
-**Status**: In Progress
+**Status**: Complete
 **Priority**: High
 **Blocked by**: None (PRD #3 M8 complete as of 2026-02-26)
 **Blocks**: Phase 1 implementation (first PRD in new repo)
@@ -96,7 +96,7 @@ All updates happen in the research repo before copying:
 - [x] **M3: Research artifacts copied to correct paths**: All 7 skill-routed documents, rubric-codebase-mapping, and prd-phase skill directory copied to the paths specified in the Document Inventory tables above. After copying, spot-check the landmarks table against the copied v3.9 spec: open the spec, confirm 3-5 section headings (Architecture, Technology Stack, Interface Contracts, Evaluation Criteria, Revision History) appear at the line numbers the landmarks table claims. This catches line-number drift before M6. *Blocked by M0 (documents must be updated first), M1 (needs updated skill), and M2 (needs the repo to exist).*
 - [x] **M4: Developer tooling configured**: `.vals.yaml` with ANTHROPIC_API_KEY and GITHUB_TOKEN (Google Secret Manager refs). `.claude/settings.local.json` with CodeRabbit MCP server enabled. commit-story journal hook verified working (make a test commit, confirm journal entry appears in `journal/entries/`). *Blocked by M2.*
 - [x] **M5: Project CLAUDE.md written**: Adapted from research repo's CLAUDE.md for implementation context — TypeScript + ESM (erasableSyntaxOnly, native Node.js type stripping, tsc --noEmit CI gate), Vitest, document layering explanation (spec → tech stack → recommendations → design doc → rubric), prd-phase skill usage instructions, attribution rules, vals usage. Not a copy — a purpose-built document for the implementation repo. *Blocked by M2.*
-- [ ] **M6: Setup verified with prd-phase 1**: Run `/prd-phase 1` in the new repo. The skill should resolve all file paths, read the correct spec sections, route to the right tech stack and rubric subsections, and produce a valid Phase 1 PRD. This is the acceptance test for the entire setup. *Blocked by M1-M5.*
+- [x] **M6: Setup verified with prd-phase 1**: Run `/prd-phase 1` in the new repo. The skill should resolve all file paths, read the correct spec sections, route to the right tech stack and rubric subsections, and produce a valid Phase 1 PRD. This is the acceptance test for the entire setup. *Blocked by M1-M5.*
 
 ## Open Questions
 
