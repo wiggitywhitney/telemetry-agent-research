@@ -2,7 +2,8 @@
 
 **Research Date:** 2026-02-26
 **Scope:** Libraries that affect the quality of the telemetry agent itself
-**Target language:** JavaScript (PoC)
+**Agent language:** TypeScript (erasableSyntaxOnly, native Node.js type stripping)
+**Instrumentation target:** JavaScript (ESM and CJS)
 **Node.js target:** 24.x LTS "Krypton" (Active LTS through October 2026, Maintenance through April 2028)
 **Source:** Structured research against official documentation, PRD #2 evaluation findings, spec v3.6, architectural recommendations
 
@@ -22,7 +23,7 @@ For architectural context, see `docs/architecture/recommendations.md`. For imple
 
 ### Spec Position
 
-The spec says "Plain TypeScript (Node.js)" for the Coordinator. The v3.6 update switched the PoC target to JavaScript. This creates an unresolved question about whether the agent code itself is TypeScript or JavaScript (see [Open Questions](#open-questions)).
+The spec originally said "Plain TypeScript (Node.js)" for the Coordinator. The v3.6 update switched to JavaScript; the v3.9 update restored TypeScript using Node.js 24.x native type stripping (see [Agent Language](#1-agent-language-javascript-vs-typescript--resolved)).
 
 ### Finding
 
@@ -34,9 +35,13 @@ The spec says "Plain TypeScript (Node.js)" for the Coordinator. The v3.6 update 
 — Source: [Node.js 22 Release Announcement](https://nodejs.org/en/blog/announcements/v22-release-announce), [Node.js Native Glob Utility — Stefan Judis](https://www.stefanjudis.com/today-i-learned/node-js-includes-a-native-glob-utility/)
 — Confidence: **HIGH**
 
+**Node.js 24.x includes native TypeScript type stripping**, enabled by default with no flags required. The runtime strips type annotations at load time, allowing direct `node src/index.ts` execution. Limitations: only erasable syntax is supported (no `enum`, no `namespace` with runtime code, no parameter properties, no decorators). TypeScript 5.8's `erasableSyntaxOnly` tsconfig option enforces these constraints at compile time. `tsc --noEmit` serves as the CI type-checking gate — the runtime provides execution, not type safety.
+— Source: [Node.js TypeScript Documentation](https://nodejs.org/api/typescript.html), [TypeScript 5.8 — erasableSyntaxOnly](https://www.typescriptlang.org/tsconfig/erasableSyntaxOnly.html)
+— Confidence: **HIGH** — type stripping introduced in v22.6.0, enabled by default in v23.6.0, no experimental warning since v24.3.0, stable since v25.2.0.
+
 ### Recommendation
 
-Target **Node.js 24.x LTS** minimum. This gives access to all built-in APIs (glob, fetch, WebSocket client, AbortSignal improvements) and aligns with the latest Active LTS line with support through April 2028. The spec should add this to the Technology Stack table.
+Target **Node.js 24.x LTS** minimum. This gives access to all built-in APIs (glob, fetch, WebSocket client, AbortSignal improvements), native TypeScript type stripping, and aligns with the latest Active LTS line with support through April 2028. The spec should add this to the Technology Stack table.
 
 ---
 
@@ -164,7 +169,7 @@ Note: These estimates exclude thinking token overhead, which is billed at output
 
 ## 3. AST Manipulation: ts-morph
 
-This is the most consequential evaluation item. The spec chose ts-morph for scope analysis — but the PoC now targets JavaScript. Is ts-morph still the right tool?
+This is the most consequential evaluation item. The spec chose ts-morph for scope analysis. With the agent written in TypeScript and instrumenting JavaScript target files (`allowJs: true`), ts-morph is the natural fit — but its scope analysis uses compiler internals that warrant scrutiny.
 
 ### Spec Position
 
@@ -228,7 +233,7 @@ Choosing Babel for Phase 1 means rebuilding all AST analysis code when TypeScrip
 2. **Import analysis:** ts-morph's `getImportDeclarations()` is the best API of any library evaluated for detecting existing OTel instrumentation.
 3. **RST-001 (pure function detection):** ts-morph lacks Babel's `isPure()`. Use a simpler heuristic: no `fetch`, `fs`, `http`, `child_process`, `database` calls in function body. This is a Tier 2 advisory check, not a blocking gate.
 4. **Phase 2 readiness:** When TypeScript support arrives, the same ts-morph code works without changes.
-5. **JavaScript overhead:** Using the TypeScript compiler on JS files via `allowJs: true` is heavier than a pure JS parser, but acceptable for a PoC that processes files sequentially. Per-file cost is parsing, not initialization — negligible compared to LLM API call latency.
+5. **Target file overhead:** Using the TypeScript compiler on JavaScript target files via `allowJs: true` is heavier than a pure JS parser, but acceptable since files are processed sequentially. Per-file cost is parsing, not initialization — negligible compared to LLM API call latency.
 
 ### AST Caveats
 
@@ -398,7 +403,7 @@ The spec references `**/*.js` glob patterns for file discovery but doesn't speci
 
 **Use `node:fs` built-in `glob()`.** Zero dependency cost. The spec's exclude patterns can be applied as a post-filter or via the `exclude` option. Since we target Node.js 24.x (well past 22.17 where this stabilized), the built-in covers our needs:
 
-```javascript
+```typescript
 import { glob } from 'node:fs/promises';
 const files = await Array.fromAsync(glob('**/*.js', { cwd: targetDir }));
 const filtered = files.filter(f => !excludePatterns.some(p => matches(f, p)));
@@ -543,7 +548,7 @@ Changes the spec should incorporate based on this evaluation:
 8. **Add yaml** to Technology Stack table (config parsing)
 9. **Add built-in node:fs glob and node:child_process** to Technology Stack table
 10. **Note ts-morph scope analysis limitation** (issues #561, #1351) — variable shadowing check should use compiler node `locals` access, not just `findReferences()`
-11. **Clarify agent language** — is the agent code itself JavaScript or TypeScript? (see Open Questions)
+11. ~~**Clarify agent language**~~ — resolved: TypeScript with erasableSyntaxOnly, native Node.js 24.x type stripping (see [Agent Language](#1-agent-language-javascript-vs-typescript--resolved))
 12. **Pin MCP SDK to v1.x** — v2 is pre-alpha
 13. **Note Prettier config resolution** — the agent should respect the target project's `.prettierrc`
 
@@ -551,32 +556,34 @@ Changes the spec should incorporate based on this evaluation:
 
 ## Open Questions
 
-### 1. Agent Language: JavaScript vs TypeScript — RESOLVED
+### 1. Agent Language: JavaScript vs TypeScript — RESOLVED (REOPENED)
 
-**Decision: JavaScript with ESM modules.** `"type": "module"` in package.json. No build step. ts-morph handles JS target files via `allowJs: true`.
+**Decision: TypeScript with ESM modules and erasableSyntaxOnly.** `"type": "module"` in package.json. No build step — `node src/index.ts` directly via Node.js 24.x native type stripping. `tsc --noEmit` as CI type-checking gate. ts-morph handles JavaScript target files via `allowJs: true`.
 
-The spec says "Plain TypeScript" for the Coordinator but targets JavaScript for the PoC. This was resolved during PRD #3 milestone 7 work.
+This question was originally resolved as JavaScript during PRD #3 milestone 7. It was reopened during PRD #7 (M0) when Node.js 24.x native type stripping eliminated the build-step argument — the only substantive advantage JavaScript had.
 
-| Dimension | JavaScript | TypeScript |
+| Dimension | JavaScript (original decision) | TypeScript (current decision) |
 |-----------|-----------|------------|
-| **Zod schemas** | Works — Zod is runtime validation, no TS required | Works — adds compile-time type inference from schemas |
-| **`zodOutputFormat()` interaction** | Returns a plain object; agent code uses `response.parsed_output` without type checking | Returns a typed object; `response.parsed_output` is `z.infer<typeof Schema>` with full IDE support |
+| **Zod schemas** | Works — Zod is runtime validation, no TS required | Works — adds compile-time type inference via `z.infer<typeof Schema>` |
+| **`zodOutputFormat()` interaction** | Returns a plain object; no type checking on `response.parsed_output` | Returns a typed object; `response.parsed_output` is fully typed with IDE support |
 | **ts-morph `Project` config** | `allowJs: true`, no `tsconfig.json` required for the agent itself | Standard `tsconfig.json` — ts-morph uses it for both agent code and target file analysis |
-| **Build step** | None — `node src/index.js` directly | Requires `tsc` compilation or `tsx` for development. ts-morph already pulls in the TypeScript compiler, so no additional dependency. |
-| **JSDoc type annotations** | Possible via `@type`, `@param`, `@returns` — gets partial IDE support without a build step | Native type annotations — full IDE support, compile-time errors |
+| **Build step** | None — `node src/index.js` directly | None — `node src/index.ts` directly via native type stripping. `tsc --noEmit` for CI. |
+| **Type annotations** | JSDoc `@type`, `@param`, `@returns` — partial IDE support | Native type annotations — full IDE support, compile-time errors |
 | **Structured output typing** | `response.parsed_output.instrumentedCode` — no type error if field name is wrong | Compile-time error if you access a field that doesn't exist on the Zod-inferred type |
-| **DX during development** | Simpler (no compilation), but errors surface at runtime | Stricter (compilation step), but errors surface at build time |
+| **DX during development** | Simpler, but errors surface at runtime | Same execution simplicity (no build step), errors surface at build time |
 | **Dependency footprint** | ts-morph already installs TypeScript compiler (~57 MB) — no savings | Same footprint — TypeScript is already present |
 
-**Original assessment:** TypeScript has near-zero marginal cost (ts-morph already installs the compiler) and provides meaningful safety for the agent's own code — especially around the Zod schema types that define the LLM response contract. The "simplicity" argument for JavaScript is weaker when the TypeScript compiler is already in `node_modules`.
+**Original assessment (PRD #3):** TypeScript has near-zero marginal cost (ts-morph already installs the compiler) and provides meaningful safety for the agent's own code — especially around the Zod schema types that define the LLM response contract. The "simplicity" argument for JavaScript is weaker when the TypeScript compiler is already in `node_modules`.
 
-**Resolution:** JavaScript chosen for the PoC. The simplicity of no build step and direct `node src/index.js` execution wins for a PoC. Zod provides runtime validation regardless. JSDoc type annotations available if needed for IDE support. TypeScript can be adopted post-PoC without structural changes.
+**Original resolution (PRD #3):** JavaScript chosen for the PoC. The simplicity of no build step and direct `node src/index.js` execution wins for a PoC. Zod provides runtime validation regardless. JSDoc type annotations available if needed for IDE support.
+
+**Reopened resolution (PRD #7):** TypeScript chosen. Node.js 24.x native type stripping removes the build-step advantage that justified JavaScript. With `node src/index.ts` working directly (no compilation, no `tsx`), TypeScript provides compile-time safety at zero DX cost. The `erasableSyntaxOnly` constraint (no enums, no runtime namespaces, no parameter properties) is not limiting — Zod schemas and plain objects cover the same ground. `tsc --noEmit` runs in CI as the type-checking gate. Supersedes design document Decision 12.
 
 ### 2. Module System: CJS vs ESM — RESOLVED
 
 **Decision: ESM.** `"type": "module"` in package.json. All imports use ESM `import` syntax.
 
-The spec doesn't specify. ESM is the modern default. The recommendation to use `node:child_process` over execa sidesteps the most acute library constraint. Vitest handles ESM natively. With JavaScript as the agent language, ESM is the natural and only sensible choice.
+The spec doesn't specify. ESM is the modern default. The recommendation to use `node:child_process` over execa sidesteps the most acute library constraint. Vitest handles ESM natively. With TypeScript as the agent language and Node.js native type stripping, ESM is the natural and only sensible choice.
 
 ### 3. Prettier Config Resolution — RESOLVED
 

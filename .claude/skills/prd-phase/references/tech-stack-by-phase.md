@@ -6,7 +6,7 @@ This routing table maps each implementation phase to the specific sections of `d
 
 Section numbers refer to the numbered sections in tech-stack-evaluation.md.
 
-**Resolved decisions**: The agent code is **JavaScript** with **ESM modules** (`"type": "module"` in package.json). ts-morph handles JavaScript via `allowJs: true`. All code snippets use ESM `import` syntax.
+**Resolved decisions**: The agent code is **TypeScript** with **ESM modules** (`"type": "module"` in package.json, native Node.js type stripping via `erasableSyntaxOnly`). ts-morph handles JavaScript target files via `allowJs: true`. All agent code snippets use TypeScript ESM `import` syntax.
 
 ---
 
@@ -25,7 +25,7 @@ Section numbers refer to the numbered sections in tech-stack-evaluation.md.
 These must appear verbatim in the PRD:
 
 **Structured output pattern** (from section 2):
-```javascript
+```typescript
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 
 const response = await client.messages.parse({
@@ -38,7 +38,7 @@ const response = await client.messages.parse({
 ```
 
 **Prompt caching pattern** (from section 2):
-```javascript
+```typescript
 const response = await client.messages.create({
   model: "claude-sonnet-4-6",
   max_tokens: 16000,
@@ -98,7 +98,7 @@ const response = await client.messages.create({
 ### Phase 4 Key Code Snippets
 
 **File discovery pattern** (from section 10):
-```javascript
+```typescript
 import { glob } from 'node:fs/promises';
 
 const files = await Array.fromAsync(glob('**/*.js', { cwd: targetDir }));

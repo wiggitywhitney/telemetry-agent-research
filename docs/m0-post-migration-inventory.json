@@ -1,0 +1,614 @@
+[
+    {
+        "id": 1,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 5,
+        "snippet": "**Agent language:** TypeScript (erasableSyntaxOnly, native Node.js type stripping)"
+    },
+    {
+        "id": 2,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 6,
+        "snippet": "**Instrumentation target:** JavaScript (ESM and CJS)"
+    },
+    {
+        "id": 3,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 7,
+        "snippet": "**Node.js target:** 24.x LTS \"Krypton\" (Active LTS through October 2026, Maintenance through April 2028)"
+    },
+    {
+        "id": 4,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 22,
+        "snippet": "## 1. Runtime Environment: Node.js"
+    },
+    {
+        "id": 5,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 26,
+        "snippet": "The spec originally said \"Plain TypeScript (Node.js)\" for the Coordinator. The v3.6 update switched to JavaScript; the v3.9 update restored TypeScript using Node.js 24.x native type stripping (see [Agent Language](#1-agent-language-javascript-vs-typescript--resolved))."
+    },
+    {
+        "id": 6,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 30,
+        "snippet": "**Node.js 24.x \"Krypton\" is the current Active LTS** (latest: 24.13.1, released 2026-02-10). Node.js 22.x \"Jod\" is Maintenance LTS through April 2027. Node.js 25.x is the Current line."
+    },
+    {
+        "id": 7,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 31,
+        "snippet": "\u2014 Source: [Node.js Release Schedule](https://github.com/nodejs/Release)"
+    },
+    {
+        "id": 8,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 34,
+        "snippet": "**Node.js 22+ includes `fs.glob()` and `fs.globSync()` as stable built-in APIs** (stable since 22.17.0 LTS), eliminating the need for an external glob dependency."
+    },
+    {
+        "id": 9,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 35,
+        "snippet": "\u2014 Source: [Node.js 22 Release Announcement](https://nodejs.org/en/blog/announcements/v22-release-announce), [Node.js Native Glob Utility \u2014 Stefan Judis](https://www.stefanjudis.com/today-i-learned/node-js-includes-a-native-glob-utility/)"
+    },
+    {
+        "id": 10,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 38,
+        "snippet": "**Node.js 24.x includes native TypeScript type stripping**, enabled by default with no flags required. The runtime strips type annotations at load time, allowing direct `node src/index.ts` execution. Limitations: only erasable syntax is supported (no `enum`, no `namespace` with runtime code, no parameter properties, no decorators). TypeScript 5.8's `erasableSyntaxOnly` tsconfig option enforces these constraints at compile time. `tsc --noEmit` serves as the CI type-checking gate \u2014 the runtime provides execution, not type safety."
+    },
+    {
+        "id": 11,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 39,
+        "snippet": "\u2014 Source: [Node.js TypeScript Documentation](https://nodejs.org/api/typescript.html), [TypeScript 5.8 \u2014 erasableSyntaxOnly](https://www.typescriptlang.org/tsconfig/erasableSyntaxOnly.html)"
+    },
+    {
+        "id": 12,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 44,
+        "snippet": "Target **Node.js 24.x LTS** minimum. This gives access to all built-in APIs (glob, fetch, WebSocket client, AbortSignal improvements), native TypeScript type stripping, and aligns with the latest Active LTS line with support through April 2028. The spec should add this to the Technology Stack table."
+    },
+    {
+        "id": 13,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 172,
+        "snippet": "This is the most consequential evaluation item. The spec chose ts-morph for scope analysis. With the agent written in TypeScript and instrumenting JavaScript target files (`allowJs: true`), ts-morph is the natural fit \u2014 but its scope analysis uses compiler internals that warrant scrutiny."
+    },
+    {
+        "id": 14,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 176,
+        "snippet": "> \"ts-morph \u2014 TypeScript-native (also parses JavaScript), scope analysis\" (Technology Stack table)"
+    },
+    {
+        "id": 15,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 182,
+        "snippet": "ts-morph (published ~4 months ago, ~9.2M weekly npm downloads) delegates scope analysis to the TypeScript compiler's binder. For JavaScript files with `allowJs: true`, the compiler's binder still works, providing symbol resolution and scope binding."
+    },
+    {
+        "id": 16,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 196,
+        "snippet": "**Source says:** \"Babel does not track scopes across files. It can only work with one file at a time.\" ([Trickster Dev \u2014 Babel scope analysis](https://www.trickster.dev/post/javascript-ast-manipulation-with-babel-untangling-scope-confusion/))"
+    },
+    {
+        "id": 17,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 236,
+        "snippet": "5. **Target file overhead:** Using the TypeScript compiler on JavaScript target files via `allowJs: true` is heavier than a pure JS parser, but acceptable since files are processed sequentially. Per-file cost is parsing, not initialization \u2014 negligible compared to LLM API call latency."
+    },
+    {
+        "id": 18,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 254,
+        "snippet": "- [Trickster Dev \u2014 Babel scope analysis](https://www.trickster.dev/post/javascript-ast-manipulation-with-babel-untangling-scope-confusion/) \u2014 Binding API, cross-file limitation"
+    },
+    {
+        "id": 19,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 352,
+        "snippet": "Alternative: **isomorphic-git** \u2014 pure JavaScript implementation, no git binary dependency. However, it reimplements Git from scratch, meaning subtle behavioral differences. For a tool that creates branches and PRs in real repositories, using the actual git binary via simple-git is safer."
+    },
+    {
+        "id": 20,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 388,
+        "snippet": "The spec references `**/*.js` glob patterns for file discovery but doesn't specify a glob library."
+    },
+    {
+        "id": 21,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 392,
+        "snippet": "**Node.js built-in `fs.glob()`** \u2014 Stable since Node.js 22.17.0 LTS. Returns an AsyncIterator."
+    },
+    {
+        "id": 22,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 393,
+        "snippet": "\u2014 Source: [Node.js Native Glob Utility \u2014 Stefan Judis](https://www.stefanjudis.com/today-i-learned/node-js-includes-a-native-glob-utility/)"
+    },
+    {
+        "id": 23,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 404,
+        "snippet": "**Use `node:fs` built-in `glob()`.** Zero dependency cost. The spec's exclude patterns can be applied as a post-filter or via the `exclude` option. Since we target Node.js 24.x (well past 22.17 where this stabilized), the built-in covers our needs:"
+    },
+    {
+        "id": 24,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 408,
+        "snippet": "const files = await Array.fromAsync(glob('**/*.js', { cwd: targetDir }));"
+    },
+    {
+        "id": 25,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 458,
+        "snippet": "**LangGraph.js v1.1.5 (Feb 2026)** requires `@langchain/core` as a peer dependency. Its value-adds (complex state graphs, checkpointing, multi-agent coordination, human-in-the-loop) solve problems this architecture deliberately avoids. The agent's coordinator is a `for` loop with a `while` retry inside it."
+    },
+    {
+        "id": 26,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 504,
+        "snippet": "| Runtime | Node.js | 24.x LTS \"Krypton\" | **New** \u2014 spec should specify |"
+    },
+    {
+        "id": 27,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 529,
+        "snippet": "| glob (npm) | Node.js built-in fs.glob() covers the spec's needs |"
+    },
+    {
+        "id": 28,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 541,
+        "snippet": "1. **Add Node.js 24.x LTS minimum** to Technology Stack table"
+    },
+    {
+        "id": 29,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 551,
+        "snippet": "11. ~~**Clarify agent language**~~ \u2014 resolved: TypeScript with erasableSyntaxOnly, native Node.js 24.x type stripping (see [Agent Language](#1-agent-language-javascript-vs-typescript--resolved))"
+    },
+    {
+        "id": 30,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 559,
+        "snippet": "### 1. Agent Language: JavaScript vs TypeScript \u2014 RESOLVED (REOPENED)"
+    },
+    {
+        "id": 31,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 561,
+        "snippet": "**Decision: TypeScript with ESM modules and erasableSyntaxOnly.** `\"type\": \"module\"` in package.json. No build step \u2014 `node src/index.ts` directly via Node.js 24.x native type stripping. `tsc --noEmit` as CI type-checking gate. ts-morph handles JavaScript target files via `allowJs: true`."
+    },
+    {
+        "id": 32,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 563,
+        "snippet": "This question was originally resolved as JavaScript during PRD #3 milestone 7. It was reopened during PRD #7 (M0) when Node.js 24.x native type stripping eliminated the build-step argument \u2014 the only substantive advantage JavaScript had."
+    },
+    {
+        "id": 33,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 565,
+        "snippet": "| Dimension | JavaScript (original decision) | TypeScript (current decision) |"
+    },
+    {
+        "id": 34,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 570,
+        "snippet": "| **Build step** | None \u2014 `node src/index.js` directly | None \u2014 `node src/index.ts` directly via native type stripping. `tsc --noEmit` for CI. |"
+    },
+    {
+        "id": 35,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 571,
+        "snippet": "| **Type annotations** | JSDoc `@type`, `@param`, `@returns` \u2014 partial IDE support | Native type annotations \u2014 full IDE support, compile-time errors |"
+    },
+    {
+        "id": 36,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 576,
+        "snippet": "**Original assessment (PRD #3):** TypeScript has near-zero marginal cost (ts-morph already installs the compiler) and provides meaningful safety for the agent's own code \u2014 especially around the Zod schema types that define the LLM response contract. The \"simplicity\" argument for JavaScript is weaker when the TypeScript compiler is already in `node_modules`."
+    },
+    {
+        "id": 37,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 578,
+        "snippet": "**Original resolution (PRD #3):** JavaScript chosen for the PoC. The simplicity of no build step and direct `node src/index.js` execution wins for a PoC. Zod provides runtime validation regardless. JSDoc type annotations available if needed for IDE support."
+    },
+    {
+        "id": 38,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 580,
+        "snippet": "**Reopened resolution (PRD #7):** TypeScript chosen. Node.js 24.x native type stripping removes the build-step advantage that justified JavaScript. With `node src/index.ts` working directly (no compilation, no `tsx`), TypeScript provides compile-time safety at zero DX cost. The `erasableSyntaxOnly` constraint (no enums, no runtime namespaces, no parameter properties) is not limiting \u2014 Zod schemas and plain objects cover the same ground. `tsc --noEmit` runs in CI as the type-checking gate. Supersedes design document Decision 12."
+    },
+    {
+        "id": 39,
+        "file": "docs/architecture/tech-stack-evaluation.md",
+        "line": 586,
+        "snippet": "The spec doesn't specify. ESM is the modern default. The recommendation to use `node:child_process` over execa sidesteps the most acute library constraint. Vitest handles ESM natively. With TypeScript as the agent language and Node.js native type stripping, ESM is the natural and only sensible choice."
+    },
+    {
+        "id": 40,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 6,
+        "snippet": "**Purpose:** AI agent that auto-instruments JavaScript code with OpenTelemetry based on a Weaver schema (agent written in TypeScript)"
+    },
+    {
+        "id": 41,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 21,
+        "snippet": "| v3.6 | 2026-02-25 | **Evaluation criteria and JS PoC target:** Added Evaluation & Acceptance Criteria section: evaluation philosophy (why unit tests aren't sufficient, grounded in PRD #2 findings), rubric dimension summary (6 code-level dimensions with references to full rubric), two-tier validation architecture (structural + semantic tiers feeding the fix loop with blocking/advisory classification), and required verification levels (e2e smoke test, interface wiring, validation chain integration, progress verification). Switched PoC target from TypeScript to JavaScript \u2014 the demo codebase (commit-story-v2) is entirely JS. File discovery uses `**/*.js`, validation uses `node --check`. TypeScript support deferred to post-PoC (architecture supports it without structural changes). Added Tier 2 (semantic) to validation chain with cross-reference to evaluation section. Elevated model configurability (`agentModel`, `agentEffort`) to a prominent design decision in Technology Stack. |"
+    },
+    {
+        "id": 42,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 22,
+        "snippet": "| v3.7 | 2026-02-26 | **JavaScript notation and design-document types:** Converted all TypeScript interface blocks and code examples to JavaScript/JSDoc notation. Standardized all field names to camelCase (JavaScript convention) \u2014 breaking change from v3.6 snake_case names (e.g. `spans_added` \u2192 `spansAdded`, `libraries_needed` \u2192 `librariesNeeded`, `last_error` \u2192 `lastError`). Added 7 new types discovered during design document work: `InstrumentationOutput` (agent's raw output), `SpanCategories`, `TokenUsage`, `CheckResult` (individual validation check), `ValidationResult` (aggregated validation chain output), `ValidateFileInput` (options object for validation chain), `RunResult` (coordinator's return type for interfaces). Evolved `FileResult`: added `\"skipped\"` status for already-instrumented files, `advisoryAnnotations` for Tier 2 PR display, `tokenUsage` for per-file cost tracking, `SpanCategories` reference. Converted system prompt instructions and file paths from TypeScript to JavaScript. |"
+    },
+    {
+        "id": 43,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 23,
+        "snippet": "| v3.8 | 2026-02-26 | **Tech stack, SDK capabilities, and evaluation refinements:** Batch application of all known-but-unapplied spec changes from PRD #3 milestones 1-7. Technology Stack table expanded: added Node.js 24.x LTS, simple-git, Vitest, yaml, Zod, node:fs glob, node:child_process; updated Coordinator to JavaScript with ESM; pinned MCP SDK to v1.x. SDK capabilities added as architectural requirements: structured outputs (Zod schemas via `zodOutputFormat()`), prompt caching (`cache_control: {type: \"ephemeral\"}`), `countTokens()` for pre-flight budget checks, adaptive thinking with effort parameter (replacing deprecated `budget_tokens`). Added ts-morph scope analysis caveats (issues #561, #1351) and Prettier config resolution requirement. Converted remaining prose TypeScript\u2192JavaScript references. Recommendations-derived changes: validator feedback must be LLM-consumable (structured, specific, actionable), FileResult population is mandatory, no-silent-failures principle. Rubric refinements: RST-004 I/O exemption, CDQ-008 tracer naming consistency, CDQ-007 conditional attributes. Added auto-instrumentation interaction model (detect, defer, document, never duplicate). Added independently runnable gates requirement. |"
+    },
+    {
+        "id": 44,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 24,
+        "snippet": "| v3.9 | 2026-03-02 | **Agent language: TypeScript with native type stripping.** Restored TypeScript as the agent language (supersedes v3.7/v3.8 JavaScript decision). Node.js 24.x native type stripping enables direct `node src/index.ts` execution with zero build step \u2014 eliminating the only substantive advantage JavaScript had. `erasableSyntaxOnly` constraint enforced via tsconfig; `tsc --noEmit` as CI gate. All JSDoc `@typedef` interface blocks converted to TypeScript `interface` declarations. Technology Stack table updated: Coordinator row changed from JavaScript to TypeScript. Target files remain JavaScript (`**/*.js` globs, `node --check` validation, `allowJs: true` for ts-morph). |"
+    },
+    {
+        "id": 45,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 33,
+        "snippet": "**Long-term goal:** Distributable tool that works on any TypeScript or JavaScript codebase"
+    },
+    {
+        "id": 46,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 62,
+        "snippet": "- **What it is:** A deterministic TypeScript script using Node.js (ESM, native type stripping)"
+    },
+    {
+        "id": 47,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 65,
+        "snippet": "  - File iteration (glob `**/*.js` for files to process, apply exclude patterns)"
+    },
+    {
+        "id": 48,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 224,
+        "snippet": "| Coordinator | TypeScript with ESM (Node.js 24.x LTS) | Deterministic orchestration doesn't need a framework. No build step \u2014 `node src/index.ts` directly via native type stripping (`erasableSyntaxOnly`). `tsc --noEmit` as CI gate. Node.js 24.x provides built-in `fs.glob()`, `fetch`, and `AbortSignal` improvements. |"
+    },
+    {
+        "id": 49,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 226,
+        "snippet": "| AST manipulation | ts-morph | TypeScript-native (also parses JavaScript via `allowJs: true`), scope analysis. See ts-morph caveats below. |"
+    },
+    {
+        "id": 50,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 233,
+        "snippet": "| File discovery | `node:fs` built-in `glob()` | Zero dependency cost. Stable since Node.js 22.17.0. Exclude patterns applied as post-filter. |"
+    },
+    {
+        "id": 51,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 283,
+        "snippet": "- **Ad-hoc `live_check`** \u2014 validates JSON telemetry samples per call (input format: `{ \"samples\": [...] }` with attribute/span/metric objects) without starting an OTLP receiver. Could enable lightweight per-file schema validation by constructing synthetic samples from the agent's output. RS3 evaluated this and concluded it is **not justified for PoC**: it would require non-trivial static analysis (parsing instrumented JavaScript to extract what spans/attributes would be emitted), the per-file `weaver registry check` CLI already catches structural schema errors, and the end-of-run `live-check` (Weaver as OTLP receiver + test suite) catches semantic errors. The two-layer validation covers both ends without synthetic sample construction. Revisit post-PoC if ts-morph AST analysis of instrumented code makes synthetic sample construction feasible."
+    },
+    {
+        "id": 52,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 299,
+        "snippet": "   - OTel SDK initialization exists somewhere \u2192 **records path in config** (e.g., `src/telemetry/setup.js`)"
+    },
+    {
+        "id": 53,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 355,
+        "snippet": "\u2502  3. Glob **/*.js for files, apply exclude patterns              \u2502"
+    },
+    {
+        "id": 54,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 426,
+        "snippet": "The Instrumentation Agent outputs a **complete file replacement** \u2014 the entire instrumented JavaScript target file, not a diff or patch."
+    },
+    {
+        "id": 55,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 443,
+        "snippet": "1. **Role and constraints** \u2014 Defines the agent as an instrumentation engineer implementing a Weaver schema contract for JavaScript target files. Includes explicit prohibitions as output format specifications (see Claude 4.x Prompt Hygiene below)."
+    },
+    {
+        "id": 56,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 446,
+        "snippet": "4. **3-5 diverse examples** \u2014 Concrete JavaScript before/after pairs demonstrating the transformation pattern. Per Anthropic's multishot prompting guidance: \"Include 3-5 diverse, relevant examples. More examples = better performance, especially for complex tasks.\" Examples should cover:"
+    },
+    {
+        "id": 57,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 453,
+        "snippet": "6. **Output format specification** \u2014 \"Return ONLY the complete instrumented JavaScript target file. No markdown fences, no explanations, no partial output. Files containing placeholder comments (`// ...`, `// existing code`, `// rest of function`) will be rejected by validation.\""
+    },
+    {
+        "id": 58,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 460,
+        "snippet": "- **Remove anti-laziness directives.** Instructions like \"be thorough,\" \"write COMPLETE code,\" or \"do not be lazy\" were workarounds for earlier models. On Claude 4.6, these \"amplify the model's already-proactive behavior and can cause runaway thinking or write-then-rewrite loops.\" Instead, frame output completeness as a **format specification**: \"Output format: complete JavaScript source file. Files containing placeholder comments will fail validation.\" This is a technical constraint, not a motivational nudge."
+    },
+    {
+        "id": 59,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 497,
+        "snippet": "- **Default include pattern:** `**/*.js` \u2014 the Coordinator globs this pattern within the user-specified directory."
+    },
+    {
+        "id": 60,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 520,
+        "snippet": "The Coordinator supports SDK init files using the `NodeSDK` constructor pattern with an `instrumentations` array literal. It uses ts-morph to find the array, append new entries, and add corresponding import statements. If the SDK init file doesn't match a recognized pattern (e.g., instrumentations are constructed dynamically, spread from another file, or use `registerInstrumentations()`), the Coordinator writes a separate file (e.g., `telemetry-agent-instrumentations.js`) exporting the new instrumentation instances, logs a warning with instructions for the user to integrate manually, and notes this in the PR summary. This keeps the Coordinator deterministic without requiring it to understand arbitrary SDK initialization patterns."
+    },
+    {
+        "id": 61,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 562,
+        "snippet": "The PoC focuses on request-path functions (handlers, services, external calls). These async/event-driven patterns are common in JavaScript and TypeScript services but are not covered"
+    },
+    {
+        "id": 62,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 584,
+        "snippet": "```javascript"
+    },
+    {
+        "id": 63,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 585,
+        "snippet": "// src/services/user-service.js"
+    },
+    {
+        "id": 64,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 609,
+        "snippet": "```javascript"
+    },
+    {
+        "id": 65,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 610,
+        "snippet": "// src/telemetry/setup.js (path from config's sdkInitFile)"
+    },
+    {
+        "id": 66,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 643,
+        "snippet": "**Key point:** The target file (`user-service.js`) is NOT modified. The library handles instrumentation automatically once registered."
+    },
+    {
+        "id": 67,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 654,
+        "snippet": "```javascript"
+    },
+    {
+        "id": 68,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 655,
+        "snippet": "// src/generators/summary.js"
+    },
+    {
+        "id": 69,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 665,
+        "snippet": "```javascript"
+    },
+    {
+        "id": 70,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 666,
+        "snippet": "// src/generators/summary.js"
+    },
+    {
+        "id": 71,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 1169,
+        "snippet": "  \"path\": \"src/services/payment.js\","
+    },
+    {
+        "id": 72,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 1197,
+        "snippet": "  \"path\": \"src/services/crypto.js\","
+    },
+    {
+        "id": 73,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 1270,
+        "snippet": "sdkInitFile: ./src/telemetry/setup.js    # OTel SDK initialization file (recorded during init)"
+    },
+    {
+        "id": 74,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 1300,
+        "snippet": "  - \"**/*.test.js\""
+    },
+    {
+        "id": 75,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 1301,
+        "snippet": "  - \"**/*.spec.js\""
+    },
+    {
+        "id": 76,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 1342,
+        "snippet": "The Coordinator globs `**/*.js` within the user-specified directory to discover source files, then applies exclude patterns. The SDK init file path (from `sdkInitFile`) is automatically excluded \u2014 the agent should not instrument the file that the Coordinator manages. Test files are excluded by default; override with an empty `exclude` list if you want the agent to consider them."
+    },
+    {
+        "id": 77,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 1601,
+        "snippet": "- JavaScript support, traces only (no metrics/logs yet)"
+    },
+    {
+        "id": 78,
+        "file": "docs/specs/telemetry-agent-spec-v3.9.md",
+        "line": 1630,
+        "snippet": "- TypeScript target file support (ts-morph and the architecture support it; PoC instruments JavaScript target files only)"
+    },
+    {
+        "id": 79,
+        "file": "docs/architecture/design-document.md",
+        "line": 27,
+        "snippet": "All interfaces use TypeScript notation. The implementation is TypeScript with ESM (`\"type\": \"module\"` in package.json, native Node.js type stripping via `erasableSyntaxOnly`)."
+    },
+    {
+        "id": 80,
+        "file": "docs/architecture/design-document.md",
+        "line": 389,
+        "snippet": "| 8 | JavaScript support in Phase 1 and spec update | PRD #3 | Decision Log, 2026-02-25 |"
+    },
+    {
+        "id": 81,
+        "file": "docs/architecture/design-document.md",
+        "line": 393,
+        "snippet": "| 12 | ~~Agent code is JavaScript with ESM modules~~ \u2192 Agent code is TypeScript with ESM modules (native type stripping, `erasableSyntaxOnly`). Superseded by PRD #7 Decision 9. | PRD #3 \u2192 PRD #7 | Decision Log, 2026-02-26 \u2192 2026-02-27 |"
+    },
+    {
+        "id": 82,
+        "file": "docs/architecture/design-document.md",
+        "line": 408,
+        "snippet": "| 27 | Node.js 24.x LTS minimum | Tech Stack | \u00a71 Runtime Environment |"
+    },
+    {
+        "id": 83,
+        "file": "docs/architecture/design-document.md",
+        "line": 428,
+        "snippet": "| 47 | ~~Spec notation: JavaScript (JSDoc) everywhere~~ \u2192 Spec notation: TypeScript interfaces everywhere. Superseded by PRD #7 M0. | This document \u2192 PRD #7 | (resolved during M7 planning \u2192 2026-03-02) |"
+    },
+    {
+        "id": 84,
+        "file": "docs/architecture/design-document.md",
+        "line": 431,
+        "snippet": "| 50 | M8 as Milestone 8 of PRD #3: v3.8 spec edit batching all known-but-unapplied changes. (v3.9 produced by PRD #7 M0.) | This document | (resolved during M7 planning) |"
+    },
+    {
+        "id": 85,
+        "file": "docs/architecture/design-document.md",
+        "line": 432,
+        "snippet": "| 51 | Version numbering: M7 produces spec v3.7, M8 produces spec v3.8, M0 of PRD #7 produces spec v3.9 (TypeScript notation) | This document | (resolved during M7 planning) |"
+    },
+    {
+        "id": 86,
+        "file": "docs/architecture/design-document.md",
+        "line": 458,
+        "snippet": "All interfaces use TypeScript notation (`interface` declarations). Agent module paths use `.ts` extensions. Target file examples remain JavaScript. This document was originally written in JSDoc notation (Decision 47), then converted to TypeScript during PRD #7 M0."
+    },
+    {
+        "id": 87,
+        "file": "docs/architecture/design-document.md",
+        "line": 467,
+        "snippet": "2. **Milestone 8 (v3.8 spec edit)** \u2014 Batch application of all already-known spec changes: 13 tech stack checklist items, prose TypeScript\u2192JavaScript references, recommendations-derived changes (validator feedback format, FileResult population requirement), rubric-scores items (independently runnable gates, RST-004 I/O exemption), patterns.md item (auto-instrumentation interaction model). Blocked by M7. Uses Decision 11 discipline. Each item is either applied or explicitly deferred with rationale. (Complete. v3.9 extends with TypeScript notation \u2014 see PRD #7 M0.)"
+    },
+    {
+        "id": 88,
+        "file": "docs/architecture/design-document.md",
+        "line": 468,
+        "snippet": "3. **Cluster Whisperer as secondary validation target** \u2014 Not applicable for PoC. Cluster Whisperer is a TypeScript codebase; the agent instruments JavaScript only (resolved in PRD #3)."
+    },
+    {
+        "id": 89,
+        "file": "docs/specs/research/implementation-phasing.md",
+        "line": 77,
+        "snippet": "Config validation (Zod), prerequisite checks (as library functions), the per-file Instrumentation Agent (LLM call with prompt, output parsing, basic elision rejection), file write to disk. Basic elision rejection here is an output sanity check \u2014 reject obviously truncated output (placeholder patterns, output significantly shorter than input) before attempting validation. Phase 2 formalizes elision detection as the first step of the validation chain with more rigorous pattern matching. Exposed as a programmatic API \u2014 no CLI yet, no coordinator yet. Targets JavaScript files \u2014 file discovery uses `**/*.js` (configurable via exclude patterns), and validation uses `node --check`."
+    },
+    {
+        "id": 90,
+        "file": "docs/specs/research/implementation-phasing.md",
+        "line": 81,
+        "snippet": "Call `instrumentFile(filePath, config)` on a real JavaScript file in a real project. The output parses (`node --check`). No business logic is changed. OTel imports are from `@opentelemetry/api` only. Spans are closed in all paths."
+    },
+    {
+        "id": 91,
+        "file": "docs/specs/research/implementation-phasing.md",
+        "line": 93,
+        "snippet": "F4 (JS files not supported \u2014 the evaluation identified this as \"the one spec change with the highest leverage\" because the demo target is entirely JavaScript), F8 (missing prerequisite checks), F11 (missing TypeScript/JS check)."
+    },
+    {
+        "id": 92,
+        "file": "docs/specs/research/implementation-phasing.md",
+        "line": 467,
+        "snippet": "- JavaScript support is included in Phase 1 from the start \u2014 the evaluation's highest-leverage spec change."
+    },
+    {
+        "id": 93,
+        "file": ".claude/skills/prd-phase/SKILL.md",
+        "line": 18,
+        "snippet": "5. **TypeScript and ESM**: The agent is TypeScript (`\"type\": \"module\"` in package.json, native Node.js type stripping via `erasableSyntaxOnly`). All code samples use ESM `import` syntax and TypeScript interface notation. ts-morph is used for AST analysis (it handles JavaScript target files via `allowJs: true`)."
+    },
+    {
+        "id": 94,
+        "file": ".claude/skills/prd-phase/SKILL.md",
+        "line": 51,
+        "snippet": "**Note**: The spec was renamed from v3.5.md \u2192 v3.6.md \u2192 v3.7.md \u2192 v3.8.md \u2192 v3.9.md as content versions evolved."
+    },
+    {
+        "id": 95,
+        "file": ".claude/skills/prd-phase/SKILL.md",
+        "line": 118,
+        "snippet": "- Copy API code snippets verbatim \u2014 all JavaScript, ESM imports"
+    },
+    {
+        "id": 96,
+        "file": ".claude/skills/prd-phase/SKILL.md",
+        "line": 181,
+        "snippet": "- [ ] All agent code samples are TypeScript; target file examples remain JavaScript"
+    },
+    {
+        "id": 97,
+        "file": ".claude/skills/prd-phase/SKILL.md",
+        "line": 202,
+        "snippet": "- **TypeScript for agent code, JavaScript for target files.** The agent code is TypeScript with ESM modules (native type stripping, `erasableSyntaxOnly`). ts-morph handles JavaScript target files via `allowJs: true`. Agent code samples use TypeScript; target file examples remain JavaScript."
+    },
+    {
+        "id": 98,
+        "file": ".claude/skills/prd-phase/references/tech-stack-by-phase.md",
+        "line": 9,
+        "snippet": "**Resolved decisions**: The agent code is **TypeScript** with **ESM modules** (`\"type\": \"module\"` in package.json, native Node.js type stripping via `erasableSyntaxOnly`). ts-morph handles JavaScript target files via `allowJs: true`. All agent code snippets use TypeScript ESM `import` syntax."
+    },
+    {
+        "id": 99,
+        "file": ".claude/skills/prd-phase/references/tech-stack-by-phase.md",
+        "line": 17,
+        "snippet": "| 1. Runtime Environment: Node.js | Node.js 24.x LTS target, built-in `fs.glob()` availability |"
+    },
+    {
+        "id": 100,
+        "file": ".claude/skills/prd-phase/references/tech-stack-by-phase.md",
+        "line": 19,
+        "snippet": "| 3. AST Manipulation: ts-morph | Version (27.0.2), `allowJs: true` for JavaScript, scope analysis via `getLocals()`, compiler-internal wrapper caveat, recommendation points 1-5, AST caveats |"
+    },
+    {
+        "id": 101,
+        "file": ".claude/skills/prd-phase/references/tech-stack-by-phase.md",
+        "line": 93,
+        "snippet": "| 1. Runtime Environment: Node.js | Built-in `fs.glob()` and `fs.globSync()` \u2014 stable since 22.17.0 |"
+    },
+    {
+        "id": 102,
+        "file": ".claude/skills/prd-phase/references/tech-stack-by-phase.md",
+        "line": 104,
+        "snippet": "const files = await Array.fromAsync(glob('**/*.js', { cwd: targetDir }));"
+    }
+]

@@ -15,7 +15,7 @@ Create implementation phase PRDs for the telemetry agent by assembling content f
 2. **No detail loss**: Version numbers, API patterns, config field names, and code snippets must be copied verbatim from source documents into the PRD. Do not summarize technical details.
 3. **Excerpt, don't just reference**: Critical details (acceptance gates, API patterns, rubric rules) must be IN the PRD, not just referenced by section name.
 4. **One phase at a time**: Never create multiple phase PRDs in one session. Each phase gets a fresh context.
-5. **JavaScript and ESM**: The agent is JavaScript (`"type": "module"` in package.json). All code samples use ESM `import` syntax. ts-morph is used for AST analysis (it handles JS via `allowJs: true`), but the agent code itself is JavaScript.
+5. **TypeScript and ESM**: The agent is TypeScript (`"type": "module"` in package.json, native Node.js type stripping via `erasableSyntaxOnly`). All code samples use ESM `import` syntax and TypeScript interface notation. ts-morph is used for AST analysis (it handles JavaScript target files via `allowJs: true`).
 
 ## Process
 
@@ -43,12 +43,12 @@ Read ONLY the sections relevant to this phase.
 #### 3a. Spec Sections
 
 The phase definition contains a "Spec Sections" table. For each row:
-- **Full** -> read the entire section from `docs/specs/telemetry-agent-spec-v3.8.md`
+- **Full** -> read the entire section from `docs/specs/telemetry-agent-spec-v3.9.md`
 - **Subsection only** -> read only the named subsection
 - **Fields only** -> extract just the named configuration fields
 - **Row only** -> extract just the named row from the Technology Stack table
 
-**Note**: The spec was renamed from v3.5.md → v3.6.md → v3.7.md → v3.8.md as content versions evolved.
+**Note**: The spec was renamed from v3.5.md → v3.6.md → v3.7.md → v3.8.md → v3.9.md as content versions evolved.
 
 **Spec section landmarks** (line numbers for the 1,796-line spec):
 
@@ -115,7 +115,7 @@ Fill in each section using content gathered in Steps 2-3. Key rules:
 
 **Tech Stack section:**
 - Copy version numbers exactly (e.g., "Vitest 4.0.18", not "latest")
-- Copy API code snippets verbatim — all JavaScript, ESM imports
+- Copy API code snippets verbatim — all TypeScript, ESM imports
 - Include caveats that affect THIS phase
 - Include only entries relevant to this phase
 
@@ -173,19 +173,19 @@ Before presenting the PRD to the user, verify:
 - [ ] Every rubric rule ID listed in the phasing document appears with its full definition
 - [ ] Every spec section from the phase's spec section map is referenced with line numbers
 - [ ] Tech stack version numbers are exact (not "latest" or "current")
-- [ ] API code snippets are present and use JavaScript ESM syntax
+- [ ] API code snippets are present and use TypeScript ESM syntax
 - [ ] The acceptance gate is copied verbatim from the phasing document
 - [ ] The DX cross-cutting requirement for this phase is included
 - [ ] No content from other phases leaked in
 - [ ] Milestones build incrementally toward the acceptance gate
-- [ ] All code samples are JavaScript (not TypeScript)
+- [ ] All agent code samples are TypeScript; target file examples remain JavaScript
 
 ## Source Documents
 
 | Document | Path | Purpose |
 |----------|------|---------|
 | Implementation Phasing | `docs/specs/research/implementation-phasing.md` | Phase definitions, spec section maps, cross-cutting architecture |
-| Telemetry Agent Spec | `docs/specs/telemetry-agent-spec-v3.8.md` | Source of truth for what to build |
+| Telemetry Agent Spec | `docs/specs/telemetry-agent-spec-v3.9.md` | Source of truth for what to build |
 | Tech Stack Evaluation | `docs/architecture/tech-stack-evaluation.md` | Version numbers, API patterns, library choices |
 | Evaluation Rubric | `research/evaluation-rubric.md` | Full rule definitions for acceptance criteria |
 | Architectural Recommendations | `docs/architecture/recommendations.md` | Preserve/change verdicts, evidence base |
@@ -199,6 +199,6 @@ Before presenting the PRD to the user, verify:
 - **Don't include evaluation findings.** The implementing AI needs what to build, not why the last attempt failed.
 - **Don't include rejected alternatives.** No LangGraph comparisons, no Babel evaluations.
 - **Trust the routing tables.** Don't add "extra context that might be helpful."
-- **JavaScript only.** The agent code is JavaScript with ESM modules. ts-morph handles JS via `allowJs: true`. All samples, all paths, all config — JavaScript.
+- **TypeScript for agent code, JavaScript for target files.** The agent code is TypeScript with ESM modules (native type stripping, `erasableSyntaxOnly`). ts-morph handles JavaScript target files via `allowJs: true`. Agent code samples use TypeScript; target file examples remain JavaScript.
 
 **Note**: If any `gh` command fails with "command not found", inform the user that GitHub CLI is required: https://cli.github.com/

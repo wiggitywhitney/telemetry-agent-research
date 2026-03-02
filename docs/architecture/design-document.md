@@ -1,7 +1,7 @@
 # Design Document: Telemetry Agent Implementation
 
 **Research Date:** 2026-02-26
-**Source:** Spec v3.8, architectural recommendations, tech stack evaluation, implementation phasing, PRD #2 evaluation findings
+**Source:** Spec v3.9, architectural recommendations, tech stack evaluation, implementation phasing, PRD #2 evaluation findings
 **Purpose:** Blueprint for the next implementation — fills the gaps between existing documents so a builder can start from this
 
 ---
@@ -16,7 +16,7 @@ Three documents already exist that cover *what* to preserve/change ([recommendat
 
 3. **Consolidated decision register** — Every resolved decision from across four documents, in one scannable table that points to the source. The builder for Phase 4 shouldn't have to search the PRD decision log, the recommendations doc, and the tech stack eval to find the decisions that affect their phase.
 
-The [spec](../specs/telemetry-agent-spec-v3.8.md) remains the authoritative source for *what* the system does. This document is about *how* it's built.
+The [spec](../specs/telemetry-agent-spec-v3.9.md) remains the authoritative source for *what* the system does. This document is about *how* it's built.
 
 ---
 
@@ -24,63 +24,59 @@ The [spec](../specs/telemetry-agent-spec-v3.8.md) remains the authoritative sour
 
 The implementation phasing defines seven phases. Each phase produces a capability that the next phase consumes. This section defines the typed contracts at each boundary.
 
-All interfaces use JSDoc notation. The implementation is JavaScript with ESM (`"type": "module"` in package.json).
+All interfaces use TypeScript notation. The implementation is TypeScript with ESM (`"type": "module"` in package.json, native Node.js type stripping via `erasableSyntaxOnly`).
 
 ### Phase 1 → Phase 2: Instrumentation Output
 
 Phase 1 (`instrumentFile`) produces raw instrumented code. Phase 2 validates it. The boundary type is `InstrumentationOutput` — the structured result of a single LLM call, before any validation has run.
 
-```javascript
+```typescript
 /**
  * Result of a single instrumentation attempt (one LLM call).
  * This is the raw agent output before validation.
- *
- * @typedef {Object} InstrumentationOutput
- * @property {string} instrumentedCode - Complete file replacement (full file, not a diff)
- * @property {LibraryRequirement[]} librariesNeeded - Packages the agent identified for installation
- * @property {string[]} schemaExtensions - IDs of new schema entries the agent created
- * @property {number} attributesCreated - Count of new attributes added to schema
- * @property {SpanCategories | null} spanCategories - Breakdown of spans added (null on early failure)
- * @property {string[]} notes - Agent judgment call explanations
- * @property {TokenUsage} tokenUsage - Tokens consumed by this LLM call
  */
+interface InstrumentationOutput {
+  instrumentedCode: string;              // Complete file replacement (full file, not a diff)
+  librariesNeeded: LibraryRequirement[]; // Packages the agent identified for installation
+  schemaExtensions: string[];            // IDs of new schema entries the agent created
+  attributesCreated: number;             // Count of new attributes added to schema
+  spanCategories: SpanCategories | null; // Breakdown of spans added (null on early failure)
+  notes: string[];                       // Agent judgment call explanations
+  tokenUsage: TokenUsage;               // Tokens consumed by this LLM call
+}
 
-/**
- * @typedef {Object} SpanCategories
- * @property {number} externalCalls - Spans on outbound calls (HTTP, DB, etc.)
- * @property {number} schemaDefined - Spans matching existing schema definitions
- * @property {number} serviceEntryPoints - Spans on exported entry-point functions
- * @property {number} totalFunctionsInFile - Denominator for ratio-based backstop (~20% threshold, spec line 488)
- */
+interface SpanCategories {
+  externalCalls: number;        // Spans on outbound calls (HTTP, DB, etc.)
+  schemaDefined: number;        // Spans matching existing schema definitions
+  serviceEntryPoints: number;   // Spans on exported entry-point functions
+  totalFunctionsInFile: number; // Denominator for ratio-based backstop (~20% threshold, spec line 488)
+}
 
-/**
- * @typedef {Object} LibraryRequirement
- * @property {string} package - npm package name, e.g. "@opentelemetry/instrumentation-pg"
- * @property {string} importName - Class to import, e.g. "PgInstrumentation"
- */
+interface LibraryRequirement {
+  package: string;    // npm package name, e.g. "@opentelemetry/instrumentation-pg"
+  importName: string; // Class to import, e.g. "PgInstrumentation"
+}
 
-/**
- * @typedef {Object} TokenUsage
- * @property {number} inputTokens - Tokens in the request
- * @property {number} outputTokens - Tokens in the response
- * @property {number} cacheCreationInputTokens - Tokens written to cache
- * @property {number} cacheReadInputTokens - Tokens read from cache
- */
+interface TokenUsage {
+  inputTokens: number;              // Tokens in the request
+  outputTokens: number;             // Tokens in the response
+  cacheCreationInputTokens: number; // Tokens written to cache
+  cacheReadInputTokens: number;     // Tokens read from cache
+}
 ```
 
 **Phase 1 API:**
 
-```javascript
+```typescript
 /**
  * Instrument a single file. No validation beyond basic elision rejection.
- *
- * @param {string} filePath - Absolute path to the JS file
- * @param {string} originalCode - File contents before instrumentation
- * @param {Object} resolvedSchema - Weaver schema (already resolved via `weaver registry resolve`)
- * @param {AgentConfig} config - Validated agent configuration
- * @returns {Promise<InstrumentationOutput>}
  */
-export async function instrumentFile(filePath, originalCode, resolvedSchema, config) {}
+export async function instrumentFile(
+  filePath: string,        // Absolute path to the JS file
+  originalCode: string,    // File contents before instrumentation
+  resolvedSchema: object,  // Weaver schema (already resolved via `weaver registry resolve`)
+  config: AgentConfig,     // Validated agent configuration
+): Promise<InstrumentationOutput> {}
 ```
 
 **Why `originalCode` is a separate parameter:** The caller (fix loop in Phase 3, or coordinator in Phase 4) controls file reading and snapshots. The agent function receives content, not paths to read — this makes it testable without filesystem setup and keeps snapshot responsibility with the coordinator.
@@ -89,74 +85,67 @@ export async function instrumentFile(filePath, originalCode, resolvedSchema, con
 
 Phase 2 validates instrumented output against both tiers. Phase 3 (fix loop) consumes validation results to decide whether to retry, and formats them as LLM-consumable feedback for the next attempt.
 
-```javascript
+```typescript
 /**
  * Result of a single check within the validation chain.
- *
- * @typedef {Object} CheckResult
- * @property {string} ruleId - e.g. "SYNTAX", "LINT", "WEAVER", "CDQ-001", "RST-001"
- * @property {boolean} passed
- * @property {string} filePath
- * @property {number | null} lineNumber - null for file-level checks
- * @property {string} message - Actionable feedback (designed for LLM consumption, not human logs)
- * @property {1 | 2} tier
- * @property {boolean} blocking - true = failure reverts the file; false = advisory annotation in PR
  */
+interface CheckResult {
+  ruleId: string;            // e.g. "SYNTAX", "LINT", "WEAVER", "CDQ-001", "RST-001"
+  passed: boolean;
+  filePath: string;
+  lineNumber: number | null; // null for file-level checks
+  message: string;           // Actionable feedback (designed for LLM consumption, not human logs)
+  tier: 1 | 2;
+  blocking: boolean;         // true = failure reverts the file; false = advisory annotation in PR
+}
 
 /**
  * Result of running the full validation chain on one file.
  *
  * blockingFailures and advisoryFindings are populated by validateFile as
- * pre-filtered arrays (not computed properties). They are redundant with
- * tier1Results/tier2Results — the filtering is done once at construction
- * time so consumers don't have to re-derive them.
- *
- * @typedef {Object} ValidationResult
- * @property {boolean} passed - All blocking checks passed
- * @property {CheckResult[]} tier1Results - Structural checks (elision, syntax, lint, Weaver static)
- * @property {CheckResult[]} tier2Results - Semantic checks (coverage, restraint, code quality)
- * @property {CheckResult[]} blockingFailures - All failed blocking checks (filtered from both tiers)
- * @property {CheckResult[]} advisoryFindings - All failed advisory checks (filtered from tier2Results)
+ * pre-filtered arrays. They are redundant with tier1Results/tier2Results —
+ * the filtering is done once at construction time so consumers don't have
+ * to re-derive them.
  */
+interface ValidationResult {
+  passed: boolean;                   // All blocking checks passed
+  tier1Results: CheckResult[];       // Structural checks (elision, syntax, lint, Weaver static)
+  tier2Results: CheckResult[];       // Semantic checks (coverage, restraint, code quality)
+  blockingFailures: CheckResult[];   // All failed blocking checks (filtered from both tiers)
+  advisoryFindings: CheckResult[];   // All failed advisory checks (filtered from tier2Results)
+}
 ```
 
 **Phase 2 API:**
 
-```javascript
-/**
- * @typedef {Object} ValidateFileInput
- * @property {string} originalCode - Original file before instrumentation (for diff-based lint)
- * @property {string} instrumentedCode - Agent's output
- * @property {string} filePath - For filesystem-based checks (syntax, lint)
- * @property {Object} resolvedSchema - For Weaver static check
- * @property {ValidationConfig} config - Which checks to run, blocking/advisory classification
- */
+```typescript
+interface ValidateFileInput {
+  originalCode: string;        // Original file before instrumentation (for diff-based lint)
+  instrumentedCode: string;    // Agent's output
+  filePath: string;            // For filesystem-based checks (syntax, lint)
+  resolvedSchema: object;      // For Weaver static check
+  config: ValidationConfig;    // Which checks to run, blocking/advisory classification
+}
 
 /**
  * Run the full validation chain (Tier 1 + Tier 2) on instrumented output.
  *
  * Tier 1 runs first. If any Tier 1 check fails, Tier 2 is skipped
  * (the code doesn't compile, so semantic checks are meaningless).
- *
- * @param {ValidateFileInput} input
- * @returns {Promise<ValidationResult>}
  */
-export async function validateFile(input) {}
+export async function validateFile(input: ValidateFileInput): Promise<ValidationResult> {}
 ```
 
 **Why an options object:** `validateFile` has five parameters that are all required and all different types. Unlike `instrumentFile` (where the parameters have a natural reading order: file, code, schema, config), the validation parameters are a grab bag of context needed by different checkers. An options object avoids positional confusion and makes call sites self-documenting.
 
 **Feedback formatting:** The fix loop (Phase 3) needs validation results formatted as LLM-consumable text. This is a separate function, not part of `validateFile`:
 
-```javascript
+```typescript
 /**
  * Format validation failures as text for the LLM's next attempt.
  * Produces the structured feedback format: {rule_id} | {pass|fail} | {path}:{line} | {message}
- *
- * @param {ValidationResult} result
- * @returns {string} Formatted feedback for appending to conversation
  */
-export function formatFeedbackForAgent(result) {}
+export function formatFeedbackForAgent(result: ValidationResult): string {}
 ```
 
 ### Phase 3 → Phase 4: File-Level Result
@@ -165,31 +154,31 @@ Phase 3 (fix loop) orchestrates Phase 1 + Phase 2 in a retry loop. It produces a
 
 The spec's existing `FileResult` needs two additions for two-tier validation:
 
-```javascript
+```typescript
 /**
  * Complete result for one file after all attempts (initial + retries).
  * This is what the Coordinator collects per file.
- *
- * @typedef {Object} FileResult
- * @property {string} path
- * @property {"success" | "failed" | "skipped"} status - "skipped" for already-instrumented files
- * @property {number} spansAdded
- * @property {LibraryRequirement[]} librariesNeeded
- * @property {string[]} schemaExtensions - IDs of new schema entries
- * @property {number} attributesCreated
- * @property {number} validationAttempts - Total attempts (1 = first try succeeded)
- * @property {"initial-generation" | "multi-turn-fix" | "fresh-regeneration"} validationStrategyUsed - Strategy of the last completed attempt
- * @property {string[]} [errorProgression] - e.g. ["3 syntax errors", "1 lint error", "0 errors"]
- * @property {SpanCategories | null} [spanCategories]
- * @property {string[]} [notes] - Agent judgment call explanations
- * @property {string} [schemaHashBefore]
- * @property {string} [schemaHashAfter]
- * @property {string} [agentVersion]
- * @property {string} [reason] - Human-readable summary on failure
- * @property {string} [lastError] - Raw error output for debugging
- * @property {CheckResult[]} [advisoryAnnotations] - Tier 2 advisory findings for PR display (NEW)
- * @property {TokenUsage} tokenUsage - Cumulative across all attempts (NEW)
  */
+interface FileResult {
+  path: string;
+  status: "success" | "failed" | "skipped";          // "skipped" for already-instrumented files
+  spansAdded: number;
+  librariesNeeded: LibraryRequirement[];
+  schemaExtensions: string[];                         // IDs of new schema entries
+  attributesCreated: number;
+  validationAttempts: number;                         // Total attempts (1 = first try succeeded)
+  validationStrategyUsed: "initial-generation" | "multi-turn-fix" | "fresh-regeneration"; // Strategy of the last completed attempt
+  errorProgression?: string[];                        // e.g. ["3 syntax errors", "1 lint error", "0 errors"]
+  spanCategories?: SpanCategories | null;
+  notes?: string[];                                   // Agent judgment call explanations
+  schemaHashBefore?: string;
+  schemaHashAfter?: string;
+  agentVersion?: string;
+  reason?: string;                                    // Human-readable summary on failure
+  lastError?: string;                                 // Raw error output for debugging
+  advisoryAnnotations?: CheckResult[];                // Tier 2 advisory findings for PR display
+  tokenUsage: TokenUsage;                             // Cumulative across all attempts
+}
 ```
 
 **New fields:**
@@ -201,7 +190,7 @@ The spec's existing `FileResult` needs two additions for two-tier validation:
 
 **Phase 3 API:**
 
-```javascript
+```typescript
 /**
  * Instrument a file with validation and retry loop.
  * Orchestrates instrumentFile (Phase 1) + validateFile (Phase 2)
@@ -210,58 +199,56 @@ The spec's existing `FileResult` needs two additions for two-tier validation:
  * The resolvedSchema is provided by the coordinator, which re-resolves
  * it before each file. The fix loop uses this snapshot for all attempts
  * on a single file — it does not re-resolve between retries.
- *
- * @param {string} filePath - Absolute path to the JS file
- * @param {string} originalCode - File contents before instrumentation
- * @param {Object} resolvedSchema - Weaver schema (resolved by coordinator before this call)
- * @param {AgentConfig} config
- * @returns {Promise<FileResult>}
  */
-export async function instrumentWithRetry(filePath, originalCode, resolvedSchema, config) {}
+export async function instrumentWithRetry(
+  filePath: string,        // Absolute path to the JS file
+  originalCode: string,    // File contents before instrumentation
+  resolvedSchema: object,  // Weaver schema (resolved by coordinator before this call)
+  config: AgentConfig,
+): Promise<FileResult> {}
 ```
 
 ### Phase 4 → Phase 5/6: Run-Level Result
 
 Phase 4 (coordinator) dispatches to Phase 3 per file and aggregates results. Phase 5 extends the coordinator with schema integration. Phase 6 (interfaces) consumes the run-level result.
 
-```javascript
+```typescript
 /**
  * Complete result of a full instrumentation run.
  * This is what the coordinator returns and interfaces consume.
- *
- * @typedef {Object} RunResult
- * @property {FileResult[]} fileResults - Per-file outcomes
- * @property {CostCeiling} costCeiling - Pre-run ceiling calculation
- * @property {TokenUsage} actualTokenUsage - Cumulative across all files
- * @property {number} filesProcessed - Total files attempted
- * @property {number} filesSucceeded
- * @property {number} filesFailed
- * @property {number} filesSkipped - Already-instrumented
- * @property {string[]} librariesInstalled - Packages successfully installed
- * @property {string[]} libraryInstallFailures - Packages that failed to install
- * @property {boolean} sdkInitUpdated - Whether the SDK init file was modified
- * @property {string} [schemaDiff] - Weaver registry diff output (markdown format from `weaver registry diff --diff-format markdown`)
- * @property {string} [schemaHashStart] - Registry hash at run start
- * @property {string} [schemaHashEnd] - Registry hash at run end
- * @property {string} [endOfRunValidation] - Weaver live-check compliance report (raw CLI output)
- * @property {string[]} warnings - Degraded conditions (skipped live-check, failed installs, etc.)
  */
+interface RunResult {
+  fileResults: FileResult[];             // Per-file outcomes
+  costCeiling: CostCeiling;             // Pre-run ceiling calculation
+  actualTokenUsage: TokenUsage;          // Cumulative across all files
+  filesProcessed: number;                // Total files attempted
+  filesSucceeded: number;
+  filesFailed: number;
+  filesSkipped: number;                  // Already-instrumented
+  librariesInstalled: string[];          // Packages successfully installed
+  libraryInstallFailures: string[];      // Packages that failed to install
+  sdkInitUpdated: boolean;               // Whether the SDK init file was modified
+  schemaDiff?: string;                   // Weaver registry diff output (markdown format from `weaver registry diff --diff-format markdown`)
+  schemaHashStart?: string;              // Registry hash at run start
+  schemaHashEnd?: string;                // Registry hash at run end
+  endOfRunValidation?: string;           // Weaver live-check compliance report (raw CLI output)
+  warnings: string[];                    // Degraded conditions (skipped live-check, failed installs, etc.)
+}
 ```
 
 **On `schemaDiff` and `endOfRunValidation` as strings:** Both store raw Weaver CLI output rather than parsed structured types. This is a deliberate PoC choice — Weaver's output formats may change between versions, and parsing them into a structured type creates a coupling that's not justified until Phase 7's PR summary generator actually needs field-level access. If Phase 7 finds that it needs to distinguish "added attributes" from "renamed spans" rather than dumping the markdown, the type should evolve to a structured form at that point. For now, the PR summary can embed the Weaver markdown directly.
 
 **Phase 4 API:**
 
-```javascript
+```typescript
 /**
  * Run the full instrumentation workflow on a project.
- *
- * @param {string} projectDir - Root directory to instrument
- * @param {AgentConfig} config - Validated configuration
- * @param {CoordinatorCallbacks} [callbacks] - Progress reporting
- * @returns {Promise<RunResult>}
  */
-export async function coordinate(projectDir, config, callbacks) {}
+export async function coordinate(
+  projectDir: string,                  // Root directory to instrument
+  config: AgentConfig,                 // Validated configuration
+  callbacks?: CoordinatorCallbacks,    // Progress reporting
+): Promise<RunResult> {}
 ```
 
 ### Phase 5: Schema Integration Extensions
@@ -280,24 +267,22 @@ Interfaces are thin adapters. Each one:
 3. Calls `coordinate(projectDir, config, callbacks)`
 4. Formats `RunResult` for its output channel
 
-```javascript
-/**
- * @typedef {Object} CostCeiling
- * @property {number} fileCount
- * @property {number} totalFileSizeBytes
- * @property {number} maxTokensCeiling - fileCount * maxTokensPerFile (theoretical worst case)
- */
+```typescript
+interface CostCeiling {
+  fileCount: number;
+  totalFileSizeBytes: number;
+  maxTokensCeiling: number; // fileCount * maxTokensPerFile (theoretical worst case)
+}
 
-/**
- * @typedef {Object} CoordinatorCallbacks
- * @property {function(CostCeiling): (boolean | void)} [onCostCeilingReady]
- * @property {function(string, number, number): void} [onFileStart] - (path, index, total)
- * @property {function(FileResult, number, number): void} [onFileComplete] - (result, index, total)
- * @property {function(number, boolean): (boolean | void)} [onSchemaCheckpoint] - (filesProcessed, passed)
- * @property {function(): void} [onValidationStart]
- * @property {function(boolean, string): void} [onValidationComplete] - (passed, complianceReport)
- * @property {function(FileResult[]): void} [onRunComplete]
- */
+interface CoordinatorCallbacks {
+  onCostCeilingReady?: (ceiling: CostCeiling) => boolean | void;
+  onFileStart?: (path: string, index: number, total: number) => void;
+  onFileComplete?: (result: FileResult, index: number, total: number) => void;
+  onSchemaCheckpoint?: (filesProcessed: number, passed: boolean) => boolean | void;
+  onValidationStart?: () => void;
+  onValidationComplete?: (passed: boolean, complianceReport: string) => void;
+  onRunComplete?: (results: FileResult[]) => void;
+}
 ```
 
 No new types. The value of Phase 6 is wiring, not contracts.
@@ -335,15 +320,15 @@ src/
   validation/
     tier1/          Structural checks — elision, syntax, lint, Weaver static
     tier2/          Semantic checks — coverage, restraint, code quality (AST-based)
-    chain.js        Orchestrates Tier 1 → Tier 2, produces ValidationResult
-    feedback.js     Formats ValidationResult as LLM-consumable text
+    chain.ts        Orchestrates Tier 1 → Tier 2, produces ValidationResult
+    feedback.ts     Formats ValidationResult as LLM-consumable text
   fix-loop/         Hybrid 3-attempt strategy, oscillation detection, budget tracking
   coordinator/      File discovery, dispatch, snapshots, revert, SDK init, dependency install
-                    (largest module — may warrant internal files: discovery.js, dispatch.js, aggregate.js)
+                    (largest module — may warrant internal files: discovery.ts, dispatch.ts, aggregate.ts)
   interfaces/
-    cli.js          yargs, wired to coordinator
-    mcp.js          MCP SDK server, wired to coordinator
-    action.js       GitHub Action wrapper
+    cli.ts          yargs, wired to coordinator
+    mcp.ts          MCP SDK server, wired to coordinator
+    action.ts       GitHub Action wrapper
   git/              simple-git wrapper — branch, commit, PR operations
   ast/              ts-morph helpers — scope analysis, import detection, function classification
   deliverables/     PR summary rendering, cost formatting, dry-run handling
@@ -379,7 +364,7 @@ Each implementation phase builds specific modules. This mapping is what the `prd
 | Phase | Modules Built | Modules Extended |
 |-------|--------------|-----------------|
 | 1 | `config/`, `agent/`, `ast/` | — |
-| 2 | `validation/tier1/`, `validation/tier2/` (CDQ-001, NDS-003), `validation/chain.js`, `validation/feedback.js` | — |
+| 2 | `validation/tier1/`, `validation/tier2/` (CDQ-001, NDS-003), `validation/chain.ts`, `validation/feedback.ts` | — |
 | 3 | `fix-loop/` | — |
 | 4 | `coordinator/` | `validation/tier2/` (COV-002, RST-001, COV-005) |
 | 5 | — | `validation/tier1/` (Weaver live-check), `coordinator/` (schema checkpoints, re-resolution) |
@@ -405,7 +390,7 @@ Every resolved decision across all research documents. The table is an index —
 | 9 | Basic Weaver validation in Phase 2, complex in Phase 5 | PRD #3 | Decision Log, 2026-02-25 |
 | 10 | Spec section maps added to phasing document | PRD #3 | Decision Log, 2026-02-25 |
 | 11 | Spec edit constraints for v3.6 update | PRD #3 | Decision Log, 2026-02-25 |
-| 12 | Agent code is JavaScript with ESM modules | PRD #3 | Decision Log, 2026-02-26 |
+| 12 | ~~Agent code is JavaScript with ESM modules~~ → Agent code is TypeScript with ESM modules (native type stripping, `erasableSyntaxOnly`). Superseded by PRD #7 Decision 9. | PRD #3 → PRD #7 | Decision Log, 2026-02-26 → 2026-02-27 |
 | 13 | Implementation builds in a new separate repo | PRD #3 | Decision Log, 2026-02-26 |
 | 14 | Phase PRD creation via `prd-phase` skill | PRD #3 | Decision Log, 2026-02-26 |
 | 15 | Spec file renamed from v3.5.md to v3.6.md | PRD #3 | Decision Log, 2026-02-26 |
@@ -440,11 +425,11 @@ Every resolved decision across all research documents. The table is an index —
 | 44 | Phase boundaries are load-bearing (Phases 1-5 must not be consolidated) | Phasing | On PRD Granularity |
 | 45 | DX is cross-cutting, not a standalone phase | Phasing | Cross-Cutting: The DX Principle |
 | 46 | AI intermediary is the default output consumer | Phasing | Designing for an AI Intermediary |
-| 47 | Spec notation: JavaScript (JSDoc) everywhere | This document | (resolved during M7 planning) |
+| 47 | ~~Spec notation: JavaScript (JSDoc) everywhere~~ → Spec notation: TypeScript interfaces everywhere. Superseded by PRD #7 M0. | This document → PRD #7 | (resolved during M7 planning → 2026-03-02) |
 | 48 | M7 spec edit: two-pass (mechanical notation conversion, then substantive changes) | This document | (resolved during M7 planning) |
 | 49 | M7 spec scope: interface discoveries only; remaining changes batch to M8 | This document | (resolved during M7 planning) |
-| 50 | M8 as Milestone 8 of PRD #3: v3.8 spec edit batching all known-but-unapplied changes | This document | (resolved during M7 planning) |
-| 51 | Version numbering: M7 produces spec v3.7 (interfaces + notation), M8 produces spec v3.8 (everything else) | This document | (resolved during M7 planning) |
+| 50 | M8 as Milestone 8 of PRD #3: v3.8 spec edit batching all known-but-unapplied changes. (v3.9 produced by PRD #7 M0.) | This document | (resolved during M7 planning) |
+| 51 | Version numbering: M7 produces spec v3.7, M8 produces spec v3.8, M0 of PRD #7 produces spec v3.9 (TypeScript notation) | This document | (resolved during M7 planning) |
 | 52 | Two-pass spec edit discipline: Pass 1 mechanical notation conversion, field inventory verification, Pass 2 substantive changes | This document | (resolved during M7 planning) |
 
 ---
@@ -470,7 +455,7 @@ These changes should be applied to the spec as part of Milestone 7. They were di
 
 ### Notation Migration
 
-All existing TypeScript-style interface blocks and code examples convert to JavaScript (JSDoc for interfaces, `.js` for examples). See the two-pass process described in this document's planning discussion.
+All interfaces use TypeScript notation (`interface` declarations). Agent module paths use `.ts` extensions. Target file examples remain JavaScript. This document was originally written in JSDoc notation (Decision 47), then converted to TypeScript during PRD #7 M0.
 
 ---
 
@@ -479,5 +464,5 @@ All existing TypeScript-style interface blocks and code examples convert to Java
 Items identified during design that are out of M7 scope:
 
 1. **`prd-phase` skill update** — Add a Step 3e that routes each phase to its relevant modules from the Module Organization section. Phase 1 → `config/`, `agent/`, `ast/`. Phase 2 → `validation/`. Etc.
-2. **Milestone 8 (v3.8 spec edit)** — Batch application of all already-known spec changes: 13 tech stack checklist items, prose TypeScript→JavaScript references, recommendations-derived changes (validator feedback format, FileResult population requirement), rubric-scores items (independently runnable gates, RST-004 I/O exemption), patterns.md item (auto-instrumentation interaction model). Blocked by M7. Uses Decision 11 discipline. Each item is either applied or explicitly deferred with rationale.
+2. **Milestone 8 (v3.8 spec edit)** — Batch application of all already-known spec changes: 13 tech stack checklist items, prose TypeScript→JavaScript references, recommendations-derived changes (validator feedback format, FileResult population requirement), rubric-scores items (independently runnable gates, RST-004 I/O exemption), patterns.md item (auto-instrumentation interaction model). Blocked by M7. Uses Decision 11 discipline. Each item is either applied or explicitly deferred with rationale. (Complete. v3.9 extends with TypeScript notation — see PRD #7 M0.)
 3. **Cluster Whisperer as secondary validation target** — Not applicable for PoC. Cluster Whisperer is a TypeScript codebase; the agent instruments JavaScript only (resolved in PRD #3).
