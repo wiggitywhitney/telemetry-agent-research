@@ -49,7 +49,7 @@ interface SpanCategories {
   externalCalls: number;        // Spans on outbound calls (HTTP, DB, etc.)
   schemaDefined: number;        // Spans matching existing schema definitions
   serviceEntryPoints: number;   // Spans on exported entry-point functions
-  totalFunctionsInFile: number; // Denominator for ratio-based backstop (~20% threshold, spec line 488)
+  totalFunctionsInFile: number; // Denominator for ratio-based backstop (~20% threshold, see spec "Ratio-based backstop" section)
 }
 
 interface LibraryRequirement {
@@ -271,7 +271,7 @@ Interfaces are thin adapters. Each one:
 interface CostCeiling {
   fileCount: number;
   totalFileSizeBytes: number;
-  maxTokensCeiling: number; // fileCount * maxTokensPerFile (theoretical worst case)
+  maxTokensCeiling: number; // Sum of per-file countTokens() estimates × attempt ceiling (see spec Cost Visibility section)
 }
 
 interface CoordinatorCallbacks {
