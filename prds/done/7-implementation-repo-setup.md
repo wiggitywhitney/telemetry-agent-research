@@ -1,7 +1,7 @@
 # PRD #7: Implementation Repo Setup
 
 **Issue**: [#7](https://github.com/wiggitywhitney/telemetry-agent-research/issues/7)
-**Status**: Not Started
+**Status**: Complete
 **Priority**: High
 **Blocked by**: None (PRD #3 M8 complete as of 2026-02-26)
 **Blocks**: Phase 1 implementation (first PRD in new repo)
@@ -22,20 +22,20 @@ Update the prd-phase skill in the research repo (where the source of truth lives
 - Creating a public GitHub repo with package.json (`"type": "module"`), .gitignore, LICENSE
 - Copying 7 skill-routed documents, rubric-codebase-mapping, and prd-phase skill directory to correct paths
 - Configuring vals (ANTHROPIC_API_KEY, GITHUB_TOKEN only), CodeRabbit MCP server, commit-story-v2 journal hook
-- Writing a project CLAUDE.md for the implementation repo (JavaScript + ESM, document layering, prd-phase usage)
+- Writing a project CLAUDE.md for the implementation repo (TypeScript + ESM, document layering, prd-phase usage)
 - Verifying setup by generating Phase 1 PRD
 
 **Out of scope:**
 - Phase 1 implementation (that's the first PRD in the new repo)
 - Writing the implementation repo README (comes after Phase 1 proves the setup)
-- Modifying any research documents — they are copied as-is from the research repo
+- Modifying any research documents beyond M0's language decision propagation — once updated by M0, they are copied as-is
 - Setting up CI/CD (comes with Phase 1 when there's code to test)
 
 ## Context
 
 ### Why This Needs a PRD
 
-The previous conversation concluded this was "just a checklist." That was before adding commit-story-v2, CodeRabbit MCP, vals, and the CLAUDE.md — which introduce configuration decisions and a verification surface larger than a simple copy task. The prd-phase skill updates are also non-trivial (landmarks table rebuild requires reading the v3.8 spec and recording every section's line number).
+The previous conversation concluded this was "just a checklist." That was before adding commit-story-v2, CodeRabbit MCP, vals, and the CLAUDE.md — which introduce configuration decisions and a verification surface larger than a simple copy task. The prd-phase skill updates are also non-trivial (landmarks table rebuild requires reading the v3.9 spec and recording every section's line number).
 
 ### Document Inventory (What Gets Copied)
 
@@ -43,7 +43,7 @@ The previous conversation concluded this was "just a checklist." That was before
 
 | Document | New Repo Path | Skill Route |
 |----------|--------------|-------------|
-| telemetry-agent-spec-v3.8.md | docs/specs/telemetry-agent-spec-v3.8.md | Step 3a |
+| telemetry-agent-spec-v3.9.md | docs/specs/telemetry-agent-spec-v3.9.md | Step 3a |
 | implementation-phasing.md | docs/specs/research/implementation-phasing.md | Step 2 |
 | tech-stack-evaluation.md | docs/architecture/tech-stack-evaluation.md | Step 3b |
 | evaluation-rubric.md | research/evaluation-rubric.md | Step 3c |
@@ -72,8 +72,8 @@ PRDs 1-3, patterns.md, report.md, rubric-scores.md, section inventory JSONs, sur
 
 All updates happen in the research repo before copying:
 
-1. **Spec filename**: References `telemetry-agent-spec-v3.6.md` in SKILL.md (lines 46, 51, 188) and template (line 98). Update to `v3.8`.
-2. **Landmarks table** (SKILL.md lines 53-74): Line numbers are for v3.6 (1,634 lines). The v3.8 spec will be longer. Rebuild by reading v3.8 and recording every section heading's line number.
+1. **Spec filename**: References `telemetry-agent-spec-v3.6.md` in SKILL.md (lines 46, 51, 188) and template (line 98). Update to `v3.9`.
+2. **Landmarks table** (SKILL.md lines 53-74): Line numbers are for v3.6 (1,634 lines). The v3.9 spec will be longer. Rebuild by reading v3.9 and recording every section heading's line number.
 3. **Step 3e — Design Document**: Route each phase to relevant design-document.md sections:
    - All phases: Module organization (directory structure, dependency rules), Decision register
    - Phase 1: instrumentFile interface contract, InstrumentationOutput type
@@ -90,17 +90,18 @@ All updates happen in the research repo before copying:
 
 ## Milestones
 
-- [ ] **M1: prd-phase skill updated in research repo**: Spec filename → v3.8, landmarks table rebuilt against v3.8 spec, Step 3e added for design document routing, Source Documents table updated, phase-to-module mapping referenced, Step 2b added for previous-phase PRD decision log read (Phase 2+), milestone guidance updated with rubric-rule mapping where natural (not forced). Committed to `feature/prd-3-spec-synthesis` branch. *No blockers (PRD #3 M8 complete).*
-- [ ] **M2: Public repo created with project foundation**: GitHub repo created (name decided with human approval — see Open Questions), initialized with package.json (`"type": "module"`, `"engines": { "node": ">=24.0.0" }`), .gitignore (node_modules/, journal/, .env, *.local), LICENSE. commit-story-v2 installed as devDependency, journal hook initialized. *No blockers — can run in parallel with M1.*
-- [ ] **M3: Research artifacts copied to correct paths**: All 7 skill-routed documents, rubric-codebase-mapping, and prd-phase skill directory copied to the paths specified in the Document Inventory tables above. After copying, spot-check the landmarks table against the copied spec: open the spec, confirm 3-5 section headings (Architecture, Technology Stack, Interface Contracts, Evaluation Criteria, Revision History) appear at the line numbers the landmarks table claims. This catches line-number drift before M6. *Blocked by M1 (needs updated skill) and M2 (needs the repo to exist).*
-- [ ] **M4: Developer tooling configured**: `.vals.yaml` with ANTHROPIC_API_KEY and GITHUB_TOKEN (Google Secret Manager refs). `.claude/settings.local.json` with CodeRabbit MCP server enabled. commit-story journal hook verified working (make a test commit, confirm journal entry appears in `journal/entries/`). *Blocked by M2.*
-- [ ] **M5: Project CLAUDE.md written**: Adapted from research repo's CLAUDE.md for implementation context — JavaScript + ESM, Vitest, document layering explanation (spec → tech stack → recommendations → design doc → rubric), prd-phase skill usage instructions, attribution rules, vals usage. Not a copy — a purpose-built document for the implementation repo. *Blocked by M2.*
-- [ ] **M6: Setup verified with prd-phase 1**: Run `/prd-phase 1` in the new repo. The skill should resolve all file paths, read the correct spec sections, route to the right tech stack and rubric subsections, and produce a valid Phase 1 PRD. This is the acceptance test for the entire setup. *Blocked by M1-M5.*
+- [x] **M0: Agent language decision updated in research documents**: Propagate the TypeScript decision (Decision 9) across all affected research documents using a pre/post inventory for safety. Sub-steps: (1) Pre-migration inventory JSON (each entry: id, file, line, snippet, classification as "convert"/"keep"/"unchanged"). (2) Update tech-stack-evaluation.md — reopen Agent Language resolved question, document Node.js 24.x native type-stripping, update decision log entry 12. (3) Bump spec v3.8 → v3.9 — rename file, status/purpose lines, tech stack table (line 227), revision history, agent code fences javascript→typescript (target file examples stay javascript), keep all target file refs (.js paths, \*\*/\*.js globs). (4) Convert design-document.md — line 27 notation declaration, all JSDoc @typedef blocks → TypeScript interfaces (~12 code blocks), module org .js → .ts for agent modules. (5) Update implementation-phasing.md — clarify agent code is TypeScript, keep target file refs as JS. (6) Update prd-phase skill — SKILL.md lines 18/181/202, tech-stack-by-phase.md language declarations and code fence tags. (7) Post-migration inventory JSON and diff — every "convert" now TS, every "keep"/"unchanged" identical to before. (8) Commit. *No blockers. Executes in research repo on `feature/prd-7-implementation-repo-setup`.*
+- [x] **M1: prd-phase skill updated in research repo**: Spec filename → v3.9, landmarks table rebuilt against v3.9 spec, Step 3e added for design document routing, Source Documents table updated, phase-to-module mapping referenced, Step 2b added for previous-phase PRD decision log read (Phase 2+), milestone guidance updated with rubric-rule mapping where natural (not forced). Committed to `feature/prd-7-implementation-repo-setup` branch. *Blocked by M0 (needs v3.9 spec to exist).*
+- [x] **M2: Public repo created with project foundation**: GitHub repo `spinybacked-orbweaver` created (Decision 10), initialized with package.json (`"name": "spinybacked-orbweaver"`, `"type": "module"`, `"engines": { "node": ">=24.0.0" }`), .gitignore (node_modules/, journal/, .env, *.local), Apache 2.0 LICENSE (Decision 11). commit-story-v2 installed as devDependency, journal hook initialized. *No blockers — can run in parallel with M1.*
+- [x] **M3: Research artifacts copied to correct paths**: All 7 skill-routed documents, rubric-codebase-mapping, and prd-phase skill directory copied to the paths specified in the Document Inventory tables above. After copying, spot-check the landmarks table against the copied v3.9 spec: open the spec, confirm 3-5 section headings (Architecture, Technology Stack, Interface Contracts, Evaluation Criteria, Revision History) appear at the line numbers the landmarks table claims. This catches line-number drift before M6. *Blocked by M0 (documents must be updated first), M1 (needs updated skill), and M2 (needs the repo to exist).*
+- [x] **M4: Developer tooling configured**: `.vals.yaml` with ANTHROPIC_API_KEY and GITHUB_TOKEN (Google Secret Manager refs). `.claude/settings.local.json` with CodeRabbit MCP server enabled. commit-story journal hook verified working (make a test commit, confirm journal entry appears in `journal/entries/`). *Blocked by M2.*
+- [x] **M5: Project CLAUDE.md written**: Adapted from research repo's CLAUDE.md for implementation context — TypeScript + ESM (erasableSyntaxOnly, native Node.js type stripping, tsc --noEmit CI gate), Vitest, document layering explanation (spec → tech stack → recommendations → design doc → rubric), prd-phase skill usage instructions, attribution rules, vals usage. Not a copy — a purpose-built document for the implementation repo. *Blocked by M2.*
+- [x] **M6: Setup verified with prd-phase 1**: Run `/prd-phase 1` in the new repo. The skill should resolve all file paths, read the correct spec sections, route to the right tech stack and rubric subsections, and produce a valid Phase 1 PRD. This is the acceptance test for the entire setup. *Blocked by M1-M5.*
 
 ## Open Questions
 
-- **Repo name?** Decide at M2 execution with human approval. Direction: spider-lineage name (Weaver is the CLI the spec names; the agent that produces instrumentation threads could inherit from that lineage). Candidates to discuss: `spinneret`, `arachne`, `loom`, `silkworm`, or straight `telemetry-agent` if the thematic naming doesn't stick.
-- **License?** MIT and Apache 2.0 are both common for developer tooling. The spec is Whitney Lee's original work; the implementation repo's license applies to the agent code only.
+- ~~**Repo name?**~~ Resolved — see Decision 10.
+- ~~**License?**~~ Resolved — see Decision 11.
 
 ## Success Criteria
 
@@ -123,3 +124,8 @@ All updates happen in the research repo before copying:
 | 6 | Explicit milestone dependency annotations | M2 can parallelize with M1 (no dependency on skill updates). M3 blocked by both M1 and M2. M4/M5 blocked by M2. M6 blocked by all. Prevents wrong execution order. | 2026-02-26 |
 | 7 | Landmarks spot-check in M3 before M6 | M6 catches failures but gives opaque errors ("wrong content at line 181"). A spot-check of 3-5 section headings against landmarks table line numbers after copying gives immediately actionable diagnostics ("Architecture moved from 512 to 538"). | 2026-02-26 |
 | 8 | Repo name decided at execution time with human approval | Spider-lineage naming direction (related to Weaver). Decision deferred to M2 rather than locked in the PRD. | 2026-02-26 |
+| 9 | Agent code is TypeScript with erasableSyntaxOnly and native Node.js 24.x type stripping | Zero build step (`node src/index.ts` directly), `tsc --noEmit` as CI gate, Zod gets full `z.infer<typeof Schema>` type inference. Target files remain JavaScript. Supersedes design document Decision 12. | 2026-02-27 |
+| 10 | Repo name: `spinybacked-orbweaver` | Orb weavers are weaver spiders — clean lineage from the CLI name "Weaver." The radial web pattern maps to distributed trace topology (OpenTelemetry). Fully available on npm (404) and GitHub (zero matches). The spinyback orbweaver (*Gasteracantha cancriformis*) has a distinctive visual identity for logo design. Evaluated against spinneret, silkworm, arachne, loom, telemetry-agent, and weaver — all had namespace collisions or were too generic. | 2026-03-02 |
+| 11 | License: Apache 2.0 | Matches the entire OpenTelemetry ecosystem (collector, JS SDK, Go SDK — all Apache 2.0). Provides explicit patent grant that MIT lacks — relevant because the agent generates instrumentation code injected into users' codebases. Apache 2.0's modification-documentation requirement protects the spec author's original work. The "extra friction" vs MIT is negligible for a CLI tool (users `npm install`, they don't fork and redistribute). License applies to agent code only; the spec retains its own attribution rules. | 2026-03-02 |
+| 12 | M2 includes tsconfig.json, TypeScript/Vitest devDeps, and src/index.ts | Pre-commit hooks require build + typecheck to pass. These files are needed for the project anyway (Decision 9 specifies TypeScript + erasableSyntaxOnly). Added during M2 rather than deferring to a later milestone to keep the repo in a committable state from the first commit. | 2026-03-02 |
+| 13 | CLAUDE.md is private (gitignored) | The project CLAUDE.md contains internal workflow instructions (vals secret names, prd-phase usage, attribution rules) that are useful for development but not needed by external contributors. Gitignored to keep project instructions local rather than checked into the public repo. | 2026-03-02 |

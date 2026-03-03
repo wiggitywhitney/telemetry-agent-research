@@ -95,7 +95,7 @@ Reproduce the table and add line number ranges:
 |---------|-------|-------|-------|
 | [section name] | [Full/Subsection/Fields] | [start-end] | [from phasing doc] |
 
-**Spec file**: `docs/specs/telemetry-agent-spec-v3.8.md`
+**Spec file**: `docs/specs/telemetry-agent-spec-v3.9.md`
 
 The implementing AI should read each listed section. "Full" means read the entire section. "Subsection only" means read only the named part. "Fields only" means extract just the configuration field definitions.
 
@@ -115,6 +115,7 @@ Define 5-8 milestones that incrementally build toward the acceptance gate. Each 
 - Each milestone builds on previous ones — the implementing AI should be able to verify each milestone before moving to the next
 - Include at least one milestone for the DX cross-cutting requirement
 - The final milestone should be the full acceptance gate, tested end-to-end against a real project (not synthetic inputs)
+- Where a milestone directly satisfies a rubric rule, note the rule ID (e.g., "Tier 1 syntax check works → NDS-001"). Not every milestone maps to a rubric rule — include the mapping where it's real; omit it where it isn't.
 
 ## Dependencies
 
